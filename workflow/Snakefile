@@ -1,0 +1,295 @@
+'''Workflow for the CAMP MAG QC module.'''
+
+
+from contextlib import redirect_stderr
+import glob
+from os import makedirs, remove
+from os.path import basename, exists, getsize, isdir, join
+import pandas as pd
+from utils import Workflow_Dirs, ingest_samples, add_bin_num, get_bin_nums, pair_mag_refs, parse_dnadiff, aggregate_quast # polymut_from_cmseq
+
+
+# Load and/or make the working directory structure
+dirs = Workflow_Dirs(config['work_dir'], 'mag_qc')
+
+
+# Load sample names and input files 
+SAMPLES = ingest_samples(config['samples'], dirs.TMP)
+
+
+# Specify the location of any external resources and scripts
+dirs_ext = config['ext'] # join(dirname(abspath(__file__)), 'ext')
+dirs_scr = join(dirs_ext, 'scripts')
+
+
+# --- Workflow output --- #
+
+
+rule all:
+    input:
+        join(dirs.OUT, 'final_reports', 'complete.txt') 
+
+
+# --- Workflow steps --- #
+
+
+rule checkm:
+    input:
+        join(dirs.TMP, '{sample}.out'),
+    output:
+        join(dirs.OUT, '0_checkm', '{sample}', 'quality_report.tsv'),
+        # n50_sz = join(dirs.OUT, '0_checkm', '{sample}', 'storage/bin_stats_ext.tsv'),
+    log:
+        join(dirs.LOG, 'checkm', '{sample}.out'), 
+    conda:
+        join(config['env_yamls'], 'checkm2.yaml'),
+    threads: config['checkm_threads'],
+    resources:
+        mem_mb = config['checkm_mem_mb'],
+    params:
+        extension ='fa',
+        bin_dir = join(dirs.TMP, '{sample}'),
+        out_dir = join(dirs.OUT, '0_checkm', '{sample}'),
+        checkm2_db = config['checkm2_db'],
+        # tmp_0 = join(dirs.OUT, '0_checkm', '{sample}', 'quality_report.tsv'),
+        # tmp_1 = join(dirs.OUT, '0_checkm', '{sample}', 'tmp_1.csv'),
+        # tmp_2 = join(dirs.OUT, '0_checkm', '{sample}', 'tmp_2.csv'),
+    shell:
+        """
+        checkm2 predict --threads {threads} --input {params.bin_dir} --output-directory {params.out_dir} \
+            -x {params.extension} --database_path {params.checkm2_db} > {log} 2>&1
+        """
+# sed -i '1d' {params.tmp_0}
+# cut -f1,12,13 {params.tmp_0} | tr '\t' ',' > {params.tmp_1}
+# sed 's/,/.fa,/' {params.tmp_1} > {params.tmp_2}
+# echo -e "mag,completeness,contamination" | cat - {params.tmp_2} > {output.report}
+# rm {params.out_dir}/tmp*
+
+
+rule gtdbtk:
+    input:
+        join(dirs.TMP, '{sample}.out'),
+    output:
+        join(dirs.OUT, '1_gtdbtk', '{sample}', 'report.tsv'),
+    log:
+        join(dirs.LOG, 'gtdbtk', '{sample}.out'),
+    threads: config['gtdbtk_threads'],
+    resources:
+        mem_mb = config['gtdbtk_mem_mb'],
+    params:
+        bin_dir = join(dirs.TMP, '{sample}'),
+        out_dir = join(dirs.OUT, '1_gtdbtk', '{sample}'),
+        ext = 'fa',
+    shell:
+        """
+        gtdbtk classify_wf --genome_dir {params.bin_dir} --out_dir {params.out_dir} -x {params.ext} \
+            --cpus {threads} --force > {log} 2>&1 || echo 'No MAGs were classified' > {log} 2>&1
+            # --force makes it complete even without proteins
+        if [[ -f "{params.out_dir}/gtdbtk.bac120.summary.tsv" ]]; then
+            cp {params.out_dir}/gtdbtk.bac120.summary.tsv {output}
+        else
+            touch {output}
+        fi
+        """
+
+
+rule rename_fasta:
+    input:
+        join(dirs.TMP, '{sample}', '{bin_num}.fa'),
+    output:
+        join(dirs.OUT, '2_cmseq', '{sample}', '{bin_num}.fa'),
+    params:
+        bin_num = '{bin_num}',
+    run:
+        add_bin_num(str(input), str(params.bin_num), str(output))
+
+
+rule mapsort:
+    input:
+        fwd = join(dirs.TMP, '{sample}_1.fastq.gz'),
+        rev = join(dirs.TMP, '{sample}_2.fastq.gz'),
+        mag = join(dirs.OUT, '2_cmseq', '{sample}', '{bin_num}.fa'),
+    output:
+        join(dirs.OUT, '2_cmseq', '{sample}', '{bin_num}.bam'),
+    log:
+        join(dirs.LOG, 'mapsort', '{sample}.{bin_num}.out'), 
+    threads: config['mapsort_threads'],
+    resources:
+        mem_mb = config['mapsort_mem_mb'],
+    params:
+        prefix = join(dirs.OUT, '2_cmseq', '{sample}', '{bin_num}'),
+    shell:
+        """
+        bowtie2-build {input.mag} {params.prefix}
+        bowtie2 --very-sensitive-local -x {params.prefix} -p {threads} \
+            -1 {input.fwd} -2 {input.rev} | samtools view -@ {threads} \
+            -F 4 -uS - | samtools sort -@ {threads} - -o {params.prefix}.bam \
+            2> {log}
+        samtools index -@ {threads} {params.prefix}.bam
+        """
+
+
+rule cmseq:
+    input:
+        mag = join(dirs.OUT, '2_cmseq', '{sample}', '{bin_num}.fa'),
+        bam = join(dirs.OUT, '2_cmseq', '{sample}', '{bin_num}.bam'),
+        gtdb = join(dirs.OUT, '1_gtdbtk', '{sample}', 'report.tsv'),
+    output:
+        join(dirs.OUT, '2_cmseq', '{sample}', '{bin_num}.csv'),
+    params:
+        gff = join(dirs.OUT, '1_gtdbtk', '{sample}', 'identify', 'intermediate_results', 'marker_genes', '{bin_num}', '{bin_num}_protein.gff'),
+        minqual = config['minqual'], # 30
+        mincov = config['mincov'], # 10
+        dominant_frq_thrsh = config['dominant_frq_thrsh'], # 0.8
+    run:
+        if exists(str(params.gff)):
+            polymut_from_cmseq(str(input.bam), str(input.mag), str(params.gff), str(output), \
+                params.minqual, params.mincov, params.dominant_frq_thrsh)
+        else:
+            open(str(output), 'w').close()
+
+
+rule aggregate_cmseq:
+    input:
+        lambda wildcards: expand(rules.cmseq.output, bin_num = get_bin_nums(wildcards.sample, dirs.TMP), sample = wildcards.sample)
+    output:
+        join(dirs.OUT, '2_cmseq', '{sample}', 'report.tsv'),
+    run:
+        for i in input:
+            with open(i, 'r') as f_in, open(str(output), 'a') as f_out:
+                lines = f_in.readlines()
+                if len(lines): 
+                    l = lines[0].strip().split()
+                    # if len(l) > 1:
+                    f_out.write(i + '\t' + l[3] + '\n')
+
+
+rule get_mag_refs:
+    input:
+        join(dirs.OUT, '1_gtdbtk', '{sample}', 'report.tsv'),
+    output:
+        join(dirs.OUT, '3_dnadiff', '{sample}', 'mag_refs.out'),
+    params:
+        out_dir = join(dirs.OUT, '3_dnadiff', '{sample}'),
+    run:
+        if not isdir(params.out_dir): makedirs(params.out_dir)
+        if getsize(str(input)) != 0:
+            df = pd.read_csv(str(input), sep = '\t')
+            df.apply(lambda row : pair_mag_refs(row, params.out_dir), axis = 1)
+        open(str(output), 'w').close()
+
+
+rule dnadiff:
+    input:
+        fa = join(dirs.TMP, '{sample}', '{bin_num}.fa'),
+        made_ref = join(dirs.OUT, '3_dnadiff', '{sample}', 'mag_refs.out'),
+    output:
+        ref = join(dirs.OUT, '3_dnadiff', '{sample}', '{bin_num}.ref.fa'),
+        rep = join(dirs.OUT, '3_dnadiff', '{sample}', '{bin_num}' + '.report'),
+    params:
+        prefix = join(dirs.OUT, '3_dnadiff', '{sample}', '{bin_num}'),
+        ref = join(dirs.OUT, '3_dnadiff', '{sample}', '{bin_num}.ref'),
+    shell:
+        """
+        if [[ -f "{params.ref}" ]]; then
+            REF_PATH=$(more {params.ref})
+            if [[ -f "$REF_PATH" ]]; then
+                zcat $REF_PATH > {output.ref}
+                dnadiff {output.ref} {input.fa} -p {params.prefix}
+            else
+                touch {output.ref}
+                touch {output.rep}
+            fi
+        else
+            touch {output.ref}
+            touch {output.rep}
+        fi
+        """
+
+
+rule parse_dnadiff:
+    input:
+        join(dirs.OUT, '3_dnadiff', '{sample}', '{bin_num}' + '.report'),
+    output:
+        join(dirs.OUT, '3_dnadiff', '{sample}', '{bin_num}' + '.diff.tsv'),
+    run:
+        parse_dnadiff(str(input), str(output))
+
+
+rule aggregate_dnadiff:
+    input:
+        lambda wildcards: expand(rules.parse_dnadiff.output, bin_num = get_bin_nums(wildcards.sample, dirs.TMP), sample = wildcards.sample),
+    output:
+        join(dirs.OUT, '3_dnadiff', '{sample}', 'report.tsv'),
+    shell:
+        """
+        tmp=`echo -n "{input}" | wc -c`
+        if [ $tmp -gt 0 ]; # Only if there are (refined) bins generated
+        then
+            cat {input}>{output}
+        else
+            touch {output}
+        fi
+        """
+
+
+rule quast:
+    input:
+        fa = join(dirs.TMP,'{sample}','{bin_num}.fa'),
+        ref = join(dirs.OUT,'3_dnadiff','{sample}','{bin_num}.ref.fa'),
+    output:
+        join(dirs.OUT, '4_quast', '{sample}', '{bin_num}', 'report.tsv'),
+    log:
+        join(dirs.LOG, 'quast', '{sample}.{bin_num}.out'), 
+    conda:
+        join(config['env_yamls'], 'quast.yaml'),
+    threads: config['quast_threads'],
+    resources:
+        mem_mb = config['quast_mem_mb'],
+    params:
+        out_dir = join(dirs.OUT, '4_quast', '{sample}', '{bin_num}'),
+        min_len = config['min_contig_len'],
+    shell:
+        """
+        quast.py --threads {threads} -r {input.ref} -m {params.min_len} -o {params.out_dir} {input.fa} --no-plots || touch {output} > {log} 2>&1
+        """
+
+
+rule aggregate_quast:
+    input:
+        lambda wildcards: expand(rules.quast.output, bin_num = get_bin_nums(wildcards.sample, dirs.TMP), sample = wildcards.sample),
+    output:
+        join(dirs.OUT, '4_quast', '{sample}', 'report.csv'),
+    run:
+        aggregate_quast(input, str(output))
+
+
+rule summarize_reports:
+    input:
+        checkm = join(dirs.OUT, '0_checkm', '{sample}', 'quality_report.tsv'),
+        # n50_sz = join(dirs.OUT, '0_checkm', '{sample}', 'storage/bin_stats_ext.tsv'),
+        gtdb = join(dirs.OUT, '1_gtdbtk', '{sample}', 'report.tsv'),
+        # cmseq = join(dirs.OUT, '2_cmseq', '{sample}', 'report.tsv'),
+        diff = join(dirs.OUT, '3_dnadiff', '{sample}', 'report.tsv'),
+        quast = join(dirs.OUT, '4_quast', '{sample}', 'report.csv'),
+    output:
+        join(dirs.OUT, 'final_reports', '{sample}.summary.csv'),
+    params:
+        summ_script = join(dirs_scr, 'summarize_reports.py'),
+    shell:
+        """
+        python {params.summ_script} {input.checkm} {input.gtdb} {input.diff} {input.quast} {output} 
+        """
+# {input.n50_sz}
+
+
+rule make_config:
+    input:
+        expand(join(dirs.OUT, 'final_reports', '{sample}.summary.csv'), sample = SAMPLES),
+    output:
+        join(dirs.OUT, 'final_reports', 'complete.txt'),
+    params:
+        out_dir = join(dirs.OUT, 'final_reports'),
+    run:
+        open(str(output), 'w').close()
+
