@@ -3,6 +3,10 @@
 
 ext: 
 
+# --- checkm --- #
+
+checkm2_db: ''
+
 
 # --- cmseq --- #
 
