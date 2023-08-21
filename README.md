@@ -1,6 +1,6 @@
 # CAMP MAG QC
 
-[![Documentation Status](https://img.shields.io/readthedocs/camp-mag_qc)](https://camp-documentation.readthedocs.io/en/latest/mag_qc.html) ![Version](https://img.shields.io/badge/version-0.7.1-brightgreen)
+[![Documentation Status](https://img.shields.io/readthedocs/camp-mag_qc)](https://camp-documentation.readthedocs.io/en/latest/mag_qc.html) ![Version](https://img.shields.io/badge/version-0.7.2-brightgreen)
 
 ## Overview
 
@@ -45,7 +45,7 @@ conda activate /path/to/camp_mag-qc/conda_envs/checkm2_env_id
 checkm2 database --download --path /path/to/databases
 ```
 
-4. Update the parameter `ext` and `checkm2_db` (with `/path/to/databases/checkm2_database/uniref100.KO.1.dmnd`) in `test_data/parameters.yaml`.
+4. Update the parameters `ext` and `checkm2_db` (with `/path/to/databases/checkm2_database/uniref100.KO.1.dmnd`) in `test_data/parameters.yaml`.
 
 5. Make sure the installed pipeline works correctly. With 40 threads and a maximum of 80 GB allocated, the test dataset should finish in approximately 43 minutes.
 ```Bash
