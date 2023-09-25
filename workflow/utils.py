@@ -24,7 +24,7 @@ def extract_from_gzip(ap, out):
 def ingest_samples(samples, tmp):
     df = pd.read_csv(samples, header = 0, index_col = 0) # name, mag_dir, fwd, rev
     s = list(df.index)
-    lst = [str(l) for l in df.values.tolist()]
+    lst = df.values.tolist()
     for i,l in enumerate(lst):
         if not exists(join(tmp, s[i])): # Make a temporary directory for all of the MAGs in the sample
             makedirs(join(tmp, s[i]))
@@ -34,7 +34,7 @@ def ingest_samples(samples, tmp):
                         prefix = basename(m).split('.')[1]
                         symlink(abspath(m), join(tmp, s[i], prefix + '.fa'))
                         f_out.write(str(prefix) + '\n')
-        if not exists(join(tmp, s[i] + '_1.fastq.gz')):
+        if not exists(join(tmp, s[i] + '_1.fastq')):
             extract_from_gzip(abspath(l[1]), join(tmp, s[i] + '_1.fastq'))
             extract_from_gzip(abspath(l[2]), join(tmp, s[i] + '_2.fastq'))
     return s
