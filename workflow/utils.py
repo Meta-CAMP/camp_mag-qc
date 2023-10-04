@@ -34,9 +34,9 @@ def ingest_samples(samples, tmp):
                         prefix = basename(m).split('.')[1]
                         symlink(abspath(m), join(tmp, s[i], prefix + '.fa'))
                         f_out.write(str(prefix) + '\n')
-        if not exists(join(tmp, s[i] + '_1.fastq')):
-            extract_from_gzip(abspath(l[1]), join(tmp, s[i] + '_1.fastq'))
-            extract_from_gzip(abspath(l[2]), join(tmp, s[i] + '_2.fastq'))
+        # if not exists(join(tmp, s[i] + '_1.fastq')):
+        #     extract_from_gzip(abspath(l[1]), join(tmp, s[i] + '_1.fastq'))
+        #     extract_from_gzip(abspath(l[2]), join(tmp, s[i] + '_2.fastq'))
     return s
 
 

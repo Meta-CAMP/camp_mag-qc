@@ -1,6 +1,6 @@
 # CAMP MAG QC
 
-[![Documentation Status](https://img.shields.io/readthedocs/camp-mag_qc)](https://camp-documentation.readthedocs.io/en/latest/mag_qc.html) ![Version](https://img.shields.io/badge/version-0.7.3-brightgreen)
+[![Documentation Status](https://img.shields.io/readthedocs/camp-mag_qc)](https://camp-documentation.readthedocs.io/en/latest/mag_qc.html) ![Version](https://img.shields.io/badge/version-0.7.4-brightgreen)
 
 ## Overview
 
