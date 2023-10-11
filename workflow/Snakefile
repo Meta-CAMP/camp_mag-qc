@@ -66,11 +66,32 @@ rule checkm:
 # rm {params.out_dir}/tmp*
 
 
+rule gunc:
+    input:
+        join(dirs.TMP, '{sample}.out'),
+    output:
+        join(dirs.OUT, '1_gunc', '{sample}', 'GUNC.progenomes_2.1.maxCSS_level.tsv'),
+    log:
+        join(dirs.LOG, 'gunc', '{sample}.out'),
+    threads: config['gunc_threads'],
+    resources:
+        mem_mb = config['gunc_mem_mb'],
+    params:
+        bin_dir = join(dirs.TMP, '{sample}'),
+        out_dir = join(dirs.OUT, '1_gunc', '{sample}'),
+        diamond_db = config['diamond_db'],
+    shell:
+        """
+        mkdir -p {params.out_dir}
+        gunc run --input_dir {params.bin_dir} --out_dir {params.out_dir} --db_file {params.diamond_db} --threads {threads} > {log} 2>&1
+        """
+
+
 rule gtdbtk:
     input:
         join(dirs.TMP, '{sample}.out'),
     output:
-        join(dirs.OUT, '1_gtdbtk', '{sample}', 'report.tsv'),
+        join(dirs.OUT, '2_gtdbtk', '{sample}', 'report.tsv'),
     log:
         join(dirs.LOG, 'gtdbtk', '{sample}.out'),
     threads: config['gtdbtk_threads'],
@@ -78,10 +99,12 @@ rule gtdbtk:
         mem_mb = config['gtdbtk_mem_mb'],
     params:
         bin_dir = join(dirs.TMP, '{sample}'),
-        out_dir = join(dirs.OUT, '1_gtdbtk', '{sample}'),
+        out_dir = join(dirs.OUT, '2_gtdbtk', '{sample}'),
+        gtdb_db = config['gtdb_db'],
         ext = 'fa',
     shell:
         """
+        export GTDBTK_DATA_PATH={params.gtdb_db} 
         gtdbtk classify_wf --genome_dir {params.bin_dir} --out_dir {params.out_dir} -x {params.ext} \
             --cpus {threads} --force > {log} 2>&1 || echo 'No MAGs were classified' > {log} 2>&1
             # --force makes it complete even without proteins
@@ -133,11 +156,11 @@ rule cmseq:
     input:
         mag = join(dirs.OUT, '2_cmseq', '{sample}', '{bin_num}.fa'),
         bam = join(dirs.OUT, '2_cmseq', '{sample}', '{bin_num}.bam'),
-        gtdb = join(dirs.OUT, '1_gtdbtk', '{sample}', 'report.tsv'),
+        gtdb = join(dirs.OUT, '2_gtdbtk', '{sample}', 'report.tsv'),
     output:
         join(dirs.OUT, '2_cmseq', '{sample}', '{bin_num}.csv'),
     params:
-        gff = join(dirs.OUT, '1_gtdbtk', '{sample}', 'identify', 'intermediate_results', 'marker_genes', '{bin_num}', '{bin_num}_protein.gff'),
+        gff = join(dirs.OUT, '2_gtdbtk', '{sample}', 'identify', 'intermediate_results', 'marker_genes', '{bin_num}', '{bin_num}_protein.gff'),
         minqual = config['minqual'], # 30
         mincov = config['mincov'], # 10
         dominant_frq_thrsh = config['dominant_frq_thrsh'], # 0.8
@@ -166,16 +189,17 @@ rule aggregate_cmseq:
 
 rule get_mag_refs:
     input:
-        join(dirs.OUT, '1_gtdbtk', '{sample}', 'report.tsv'),
+        join(dirs.OUT, '2_gtdbtk', '{sample}', 'report.tsv'),
     output:
         join(dirs.OUT, '3_dnadiff', '{sample}', 'mag_refs.out'),
     params:
         out_dir = join(dirs.OUT, '3_dnadiff', '{sample}'),
+        gtdb_db = config['gtdb_db'],
     run:
         if not isdir(params.out_dir): makedirs(params.out_dir)
         if getsize(str(input)) != 0:
             df = pd.read_csv(str(input), sep = '\t')
-            df.apply(lambda row : pair_mag_refs(row, params.out_dir), axis = 1)
+            df.apply(lambda row : pair_mag_refs(row, params.out_dir, params.gtdb_db), axis = 1)
         open(str(output), 'w').close()
 
 
@@ -268,7 +292,8 @@ rule summarize_reports:
     input:
         checkm = join(dirs.OUT, '0_checkm', '{sample}', 'quality_report.tsv'),
         # n50_sz = join(dirs.OUT, '0_checkm', '{sample}', 'storage/bin_stats_ext.tsv'),
-        gtdb = join(dirs.OUT, '1_gtdbtk', '{sample}', 'report.tsv'),
+        gunc = join(dirs.OUT, '1_gunc', '{sample}', 'GUNC.progenomes_2.1.maxCSS_level.tsv'),
+        gtdb = join(dirs.OUT, '2_gtdbtk', '{sample}', 'report.tsv'),
         # cmseq = join(dirs.OUT, '2_cmseq', '{sample}', 'report.tsv'),
         diff = join(dirs.OUT, '3_dnadiff', '{sample}', 'report.tsv'),
         quast = join(dirs.OUT, '4_quast', '{sample}', 'report.csv'),
@@ -278,7 +303,7 @@ rule summarize_reports:
         summ_script = join(dirs_scr, 'summarize_reports.py'),
     shell:
         """
-        python {params.summ_script} {input.checkm} {input.gtdb} {input.diff} {input.quast} {output} 
+        python {params.summ_script} {input.checkm} {input.gunc} {input.gtdb} {input.diff} {input.quast} {output} 
         """
 # {input.n50_sz}
 

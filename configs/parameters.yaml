@@ -8,6 +8,16 @@ ext:
 checkm2_db: ''
 
 
+# --- gunc --- #
+
+diamond_db: ''
+
+
+# --- gtdbtk --- #
+
+gtdb_db: ''
+
+
 # --- cmseq --- #
 
 minqual:    30

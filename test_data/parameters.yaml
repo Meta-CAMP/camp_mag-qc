@@ -8,6 +8,16 @@ ext: '/home/lam4003/bin/camp_mag-qc/workflow/ext'
 
 checkm2_db: '/workdir/lam4003/Databases/CheckM2_05232023/uniref100.KO.1.dmnd'
 
+
+# --- gunc --- #
+
+diamond_db: '/workdir/lam4003/Databases/GUNC_10072023/gunc_db_progenomes2.1.dmnd'
+
+
+# --- gtdbtk --- #
+
+gtdb_db: '/workdir/lam4003/Databases/GTDBTk_R202_010123'
+
 # --- cmseq --- #
 
 minqual:    30

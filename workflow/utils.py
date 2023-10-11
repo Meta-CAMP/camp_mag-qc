@@ -56,14 +56,14 @@ class Workflow_Dirs:
         self.TMP = join(work_dir, 'tmp') 
         self.LOG = join(work_dir, 'logs') 
         check_make(self.OUT)
-        out_dirs = ['0_checkm', '1_gtdbtk', '3_dnadiff', '4_quast', 'final_reports']
+        out_dirs = ['0_checkm', '1_gunc', '2_gtdbtk', '3_dnadiff', '4_quast', 'final_reports']
         for d in out_dirs: 
             check_make(join(self.OUT, d))
         # Add a subdirectory for symlinked-in input files
         check_make(self.TMP)
         # Add custom subdirectories to organize rule logs
         check_make(self.LOG)
-        log_dirs = ['checkm', 'gtdbtk', 'dnadiff', 'quast']
+        log_dirs = ['checkm', 'gunc', 'gtdbtk', 'dnadiff', 'quast']
         for d in log_dirs: 
             check_make(join(self.LOG, d))
 
@@ -124,13 +124,12 @@ def get_bin_nums(s, d):
     return [i.strip() for i in tmp]
 
 
-def pair_mag_refs(row, out_dir):
+def pair_mag_refs(row, out_dir, gtdb_db):
     r = row['fastani_reference']
     r_path = 'None'
     if str(r) != 'nan':
-        GTDB = getenv('GTDBTK_DATA_PATH')
         parts = r.split('_')
-        r_path = join(GTDB, 'fastani/database', parts[0], parts[1][0:3], parts[1][3:6], parts[1][6:9], r + '_genomic.fna.gz')
+        r_path = join(gtdb_db, 'fastani/database', parts[0], parts[1][0:3], parts[1][3:6], parts[1][6:9], r + '_genomic.fna.gz')
     with open(join(out_dir, str(row['user_genome']) + '.ref'), 'w') as f_out:
         f_out.write(r_path + '\n')
 

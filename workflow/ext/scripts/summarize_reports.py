@@ -22,6 +22,10 @@ def main(args): # A FastA file
     #     info = line.strip().split('\t')
     #     size_dct[info[0]] = eval(info[1])
     # raw_df = pd.DataFrame(data = size_dct).transpose()
+    raw_df = pd.read_csv(args.gunc, sep = '\t', header = 0)
+    gunc_df = raw_df[['genome', 'clade_separation_score', 'n_effective_surplus_clades']]
+    gunc_df.columns = ['mag', 'clade_separation_score', 'n_effective_surplus_clades']
+    gunc_df['mag'] = gunc_df['mag'].astype(str)  # Otherwise, interpreted as int
     if getsize(args.gtdb) != 0: # If there were classification results
         # Load taxonomic classification (all levels)
         raw_df = pd.read_csv(args.gtdb, sep = '\t')
@@ -46,16 +50,22 @@ def main(args): # A FastA file
         raw_lst = [[m, 0, 0, 0, 'NA', 'NA', 'NA', 'NA', 'NA'] for m in summ_df['mag']]
         quas_df = pd.DataFrame(raw_lst, columns = ['mag', 'genome_fraction', 'NG50', 'NA50', 'num_misassemb', 'prop_misassemb_ctgs', 'prop_misassemb_len', 'prop_unaln_ctgs', 'prop_unaln_len'])
     # Put all of the dataframes together and output
-    for df in [gtdb_df, diff_df, quas_df]: # size_df, cmsq_df,
+    for df in [gunc_df, gtdb_df, diff_df, quas_df]: # size_df, cmsq_df,
         summ_df = pd.merge(summ_df, df, on = 'mag', how = 'outer')
     # Add in standard quality thresholds
-    summ_df['Quality'] = np.where((summ_df['completeness'] >= 90) & (summ_df['contamination'] <= 5), 'High quality', 'Medium quality') # Quality labels for DNAdiff figure
+    conditions = [
+        ((summ_df['completeness'] <= 50) & (summ_df['contamination'] <= 10) & (summ_df['clade_separation_score'] >= 0.45)),
+        ((summ_df['completeness'] > 50) & (summ_df['completeness'] <= 90) & (summ_df['contamination'] <= 10)),
+        ((summ_df['completeness'] > 90) & (summ_df['contamination'] <= 5) & (summ_df['clade_separation_score'] < 0.45))
+    ]
+    summ_df['Quality'] = np.select(conditions, ['Low', 'Medium', 'High'], default = np.nan)
     summ_df.to_csv(args.output, header = True, index = False)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("checkm", help="CheckM report")
+    parser.add_argument("gunc", help="GUNC report")
     # parser.add_argument("n50_sz", help="Bin size report")
     parser.add_argument("gtdb", help="GTDB classification report")
     parser.add_argument("diff", help="DNADiff report")
