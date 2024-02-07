@@ -1,12 +1,14 @@
-# CAMP MAG QC
+# MAG QC
 
-[![Documentation Status](https://img.shields.io/readthedocs/camp-mag_qc)](https://camp-documentation.readthedocs.io/en/latest/mag_qc.html) ![Version](https://img.shields.io/badge/version-0.8.0-brightgreen)
+[![Documentation Status](https://img.shields.io/badge/docs-passing-brightgreen.svg)](https://camp-documentation.readthedocs.io/en/latest/magqc.html) ![Version](https://img.shields.io/badge/version-0.8.1-brightgreen)
+
+<!-- [![Documentation Status](https://img.shields.io/readthedocs/camp-mag_qc)](https://camp-documentation.readthedocs.io/en/latest/mag_qc.html) -->
 
 ## Overview
 
 This module is designed to function as both a standalone MAG QC pipeline as well as a component of the larger CAMP metagenome analysis pipeline. As such, it is both self-contained (ex. instructions included for the setup of a versioned environment, etc.), and seamlessly compatible with other CAMP modules (ex. ingests and spawns standardized input/output config files, etc.). 
 
-The CAMP MAG quality-checking pipeline wraps several tools (CheckM, GTDB-Tk, DNADiff, QUAST) to assess the overall quality of the MAG binning process. More quality metrics will be added as they are validated on simulated and real gold-standard datasets. 
+The CAMP MAG quality-checking pipeline wraps several tools (CheckM, gunc, GTDB-Tk, DNADiff, QUAST) to assess the overall quality of the MAG binning process. More quality metrics will be added as they are validated on simulated and real gold-standard datasets. 
 
 ## Installation
 
@@ -19,7 +21,7 @@ git clone https://github.com/MetaSUB-CAMP/camp_mag-qc
 ```Bash
 # Create and activate conda environment 
 cd camp_mag-qc
-conda env create -f configs/conda/mag-qc.yaml
+conda env create -f configs/conda/mag_qc.yaml
 conda activate mag-qc
 ```
 
@@ -28,7 +30,7 @@ conda activate mag-qc
 ```Bash
 export GTDBTK_DATA_PATH='/path/to/databases/metagenomics/GTDBTk_R202'
 wget https://data.gtdb.ecogenomic.org/releases/release202/202.0/auxillary_files/gtdbtk_r202_data.tar.gz -P ${GTDBTK_DATA_PATH}
-tar xvzf ${GTDBTK_DATA_PATH}/gtdbtk_r202_data.tar.gz -C ${GTDBTK_DATA_PATH} --strip 1
+tar xzf ${GTDBTK_DATA_PATH}/gtdbtk_r202_data.tar.gz -C ${GTDBTK_DATA_PATH} --strip 1
 ```
 
 4. Download the database dependencies for CheckM2. The easiest way to do this is to install the CheckM2 environment using `--dry_run` (see below for explanation) and then activating the CheckM2 conda environment to use its database download command.
@@ -45,9 +47,14 @@ conda activate /path/to/camp_mag-qc/conda_envs/checkm2_env_id
 checkm2 database --download --path /path/to/databases
 ```
 
-4. Update the parameters `ext` and `checkm2_db` (with `/path/to/databases/checkm2_database/uniref100.KO.1.dmnd`) in `test_data/parameters.yaml`.
+5. Download the database dependencies for gunc. 
+```Bash
+gunc download_db /path/to/databases
+```
 
-5. Make sure the installed pipeline works correctly. With 40 threads and a maximum of 80 GB allocated, the test dataset should finish in approximately 43 minutes.
+6. Update the parameters `ext` and `checkm2_db` (with `/path/to/databases/checkm2_database/uniref100.KO.1.dmnd`) in `test_data/parameters.yaml`.
+
+7. Make sure the installed pipeline works correctly. With 40 threads and a maximum of 80 GB allocated, the test dataset should finish in approximately 43 minutes.
 ```Bash
 # Run tests on the included sample dataset
 python /path/to/camp_mag-qc/workflow/mag_qc.py test
@@ -150,5 +157,4 @@ python3 /path/to/camp_mag-qc/workflow/mag_qc.py --dry_run \
 
 - This package was created with [Cookiecutter](https://github.com/cookiecutter/cookiecutter>) as a simplified version of the [project template](https://github.com/audreyr/cookiecutter-pypackage>).
 - Free software: MIT
-- Documentation: https://camp-documentation.readthedocs.io/en/latest/mag-qc.html
 
