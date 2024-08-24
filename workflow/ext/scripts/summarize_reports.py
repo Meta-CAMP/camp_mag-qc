@@ -54,11 +54,15 @@ def main(args): # A FastA file
         summ_df = pd.merge(summ_df, df, on = 'mag', how = 'outer')
     # Add in standard quality thresholds
     conditions = [
-        ((summ_df['completeness'] <= 50) & (summ_df['contamination'] <= 10) & (summ_df['clade_separation_score'] >= 0.45)),
+        ((summ_df['completeness'] <= 50)& (summ_df['contamination'] >= 0) & (summ_df['clade_separation_score'] >= 0)),
+        ((summ_df['completeness'] > 50) & (summ_df['completeness'] > 10) & (summ_df['clade_separation_score'] > 0.45)),
         ((summ_df['completeness'] > 50) & (summ_df['completeness'] <= 90) & (summ_df['contamination'] <= 10)),
-        ((summ_df['completeness'] > 90) & (summ_df['contamination'] <= 5) & (summ_df['clade_separation_score'] < 0.45))
+        ((summ_df['completeness'] > 50) & (summ_df['completeness'] <= 90) & (summ_df['clade_separation_score'] < 0.45)),
+        ((summ_df['completeness'] > 90) & (summ_df['contamination'] < 10) & (summ_df['clade_separation_score'] >= 0.2)),
+        ((summ_df['completeness'] > 90) & (summ_df['contamination'] > 5) & (summ_df['contamination'] < 10) & (summ_df['clade_separation_score'] < 0.2)),
+        ((summ_df['completeness'] > 90) & (summ_df['contamination'] <= 5) & (summ_df['clade_separation_score'] < 0.45)),
     ]
-    summ_df['Quality'] = np.select(conditions, ['Low', 'Medium', 'High'], default = np.nan)
+    summ_df['Quality'] = np.select(conditions, ['Low', 'Low', 'Medium', 'Medium', 'Medium', 'High', 'High'], default = np.nan)
     summ_df.to_csv(args.output, header = True, index = False)
 
 

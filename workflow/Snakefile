@@ -106,7 +106,7 @@ rule gtdbtk:
         """
         export GTDBTK_DATA_PATH={params.gtdb_db} 
         gtdbtk classify_wf --genome_dir {params.bin_dir} --out_dir {params.out_dir} -x {params.ext} \
-            --cpus {threads} --force > {log} 2>&1 || echo 'No MAGs were classified' > {log} 2>&1
+            --cpus {threads} --pplacer_cpus 1 --force > {log} 2>&1 || echo 'No MAGs were classified' > {log} 2>&1
             # --force makes it complete even without proteins
         if [[ -f "{params.out_dir}/gtdbtk.bac120.summary.tsv" ]]; then
             cp {params.out_dir}/gtdbtk.bac120.summary.tsv {output}
@@ -210,16 +210,18 @@ rule dnadiff:
     output:
         ref = join(dirs.OUT, '3_dnadiff', '{sample}', '{bin_num}.ref.fa'),
         rep = join(dirs.OUT, '3_dnadiff', '{sample}', '{bin_num}' + '.report'),
+    log:
+        join(dirs.LOG, 'dnadiff', '{sample}.{bin_num}.out'), 
     params:
         prefix = join(dirs.OUT, '3_dnadiff', '{sample}', '{bin_num}'),
         ref = join(dirs.OUT, '3_dnadiff', '{sample}', '{bin_num}.ref'),
     shell:
         """
         if [[ -f "{params.ref}" ]]; then
-            REF_PATH=$(more {params.ref})
+            REF_PATH=`cat {params.ref}`
             if [[ -f "$REF_PATH" ]]; then
                 zcat $REF_PATH > {output.ref}
-                dnadiff {output.ref} {input.fa} -p {params.prefix}
+                dnadiff {output.ref} {input.fa} -p {params.prefix} > {log}
             else
                 touch {output.ref}
                 touch {output.rep}

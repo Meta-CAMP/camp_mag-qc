@@ -1,6 +1,6 @@
 # MAG QC
 
-[![Documentation Status](https://img.shields.io/badge/docs-passing-brightgreen.svg)](https://camp-documentation.readthedocs.io/en/latest/magqc.html) ![Version](https://img.shields.io/badge/version-0.8.1-brightgreen)
+[![Documentation Status](https://img.shields.io/badge/docs-passing-brightgreen.svg)](https://camp-documentation.readthedocs.io/en/latest/magqc.html) ![Version](https://img.shields.io/badge/version-0.9.0-brightgreen)
 
 <!-- [![Documentation Status](https://img.shields.io/readthedocs/camp-mag_qc)](https://camp-documentation.readthedocs.io/en/latest/mag_qc.html) -->
 
@@ -11,6 +11,9 @@ This module is designed to function as both a standalone MAG QC pipeline as well
 The CAMP MAG quality-checking pipeline wraps several tools (CheckM, gunc, GTDB-Tk, DNADiff, QUAST) to assess the overall quality of the MAG binning process. More quality metrics will be added as they are validated on simulated and real gold-standard datasets. 
 
 ## Installation
+
+> [!TIP]
+> All databases used in CAMP modules will also be available for download on Zenodo (link TBD).
 
 1. Clone repo from [Github](<https://github.com/MetaSUB-CAMP/camp_mag-qc>).
 ```Bash
@@ -54,7 +57,7 @@ gunc download_db /path/to/databases
 
 6. Update the parameters `ext` and `checkm2_db` (with `/path/to/databases/checkm2_database/uniref100.KO.1.dmnd`) in `test_data/parameters.yaml`.
 
-7. Make sure the installed pipeline works correctly. With 40 threads and a maximum of 80 GB allocated, the test dataset should finish in approximately 43 minutes.
+7. Make sure the installed pipeline works correctly. With 40 threads and a maximum of 250 GB allocated, the test dataset should finish in approximately 43 minutes. `pplacer`, a component of GTDB-Tk, requires a large amount of RAM to complete.
 ```Bash
 # Run tests on the included sample dataset
 python /path/to/camp_mag-qc/workflow/mag_qc.py test
