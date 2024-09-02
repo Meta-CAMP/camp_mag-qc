@@ -1,3 +1,3 @@
-sample_name,mag_dir
-uhgg,/path/to/camp_mag-qc/test_data/uhgg
+sample_name,mag_dir,bam
+uhgg,/path/to/camp_mag-qc/test_data/uhgg,/path/to/camp_mag-qc/test_data/uhgg.sort.bam
 

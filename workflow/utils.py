@@ -34,6 +34,7 @@ def ingest_samples(samples, tmp):
                         prefix = basename(m).split('.')[1]
                         symlink(abspath(m), join(tmp, s[i], prefix + '.fa'))
                         f_out.write(str(prefix) + '\n')
+                symlink(abspath(l[1]), join(tmp, s[i] + '.bam'))
         # if not exists(join(tmp, s[i] + '_1.fastq')):
         #     extract_from_gzip(abspath(l[1]), join(tmp, s[i] + '_1.fastq'))
         #     extract_from_gzip(abspath(l[2]), join(tmp, s[i] + '_2.fastq'))
@@ -56,14 +57,14 @@ class Workflow_Dirs:
         self.TMP = join(work_dir, 'tmp') 
         self.LOG = join(work_dir, 'logs') 
         check_make(self.OUT)
-        out_dirs = ['0_checkm', '1_gunc', '2_gtdbtk', '3_dnadiff', '4_quast', 'final_reports']
+        out_dirs = ['0_checkm2', '1_checkm1', '2_gunc', '3_gtdbtk', '4_dnadiff', '5_quast', '6_prokka', 'final_reports']
         for d in out_dirs: 
             check_make(join(self.OUT, d))
         # Add a subdirectory for symlinked-in input files
         check_make(self.TMP)
         # Add custom subdirectories to organize rule logs
         check_make(self.LOG)
-        log_dirs = ['checkm', 'gunc', 'gtdbtk', 'dnadiff', 'quast']
+        log_dirs = ['checkm', 'gunc', 'gtdbtk', 'dnadiff', 'quast', 'prokka']
         for d in log_dirs: 
             check_make(join(self.LOG, d))
 
