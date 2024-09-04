@@ -30,9 +30,9 @@ def main(args):
     # Add columns
     final_df = pd.DataFrame(average_coverage_per_mag).reset_index()
     final_df.columns = ['mag', 'avg_read_cov']
-    
-    # Optionally, save the results to a new TSV file
-    final_df.to_csv(args.f_out, header=True)
+    final_df['avg_mag_ra'] = final_df['avg_read_cov'] / final_df['avg_read_cov'].sum()
+    final_df = final_df[['mag', 'avg_mag_ra']]
+    final_df.to_csv(args.f_out, header = True, index = False)
     
 
 

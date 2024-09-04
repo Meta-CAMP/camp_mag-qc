@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """summarize_gene_cts.py 
-Summarizes the number of CDSes, genes, mRNAs, tRNAs, total rRNAs, and 23S, 16S, and 5S rRNAs found in a MAG.
+Summarizes the number of CDSes, mRNAs, tRNAs, total rRNAs, and 23S, 16S, and 5S rRNAs found in a MAG.
 """
 
 
@@ -10,7 +10,7 @@ import pandas as pd
 
 # Create an empty dictionary to store the counts
 def main(args):
-    data = {'CDS': 0, 'genes': 0, 'mRNA': 0, 'tRNA': 0, 'rRNA_total': 0, 'rRNA_5s': 0, 'rRNA_16s': 0, 'rRNA_23s': 0}
+    data = {'CDS': 0, 'tRNA': 0, 'rRNA_total': 0, 'rRNA_5s': 0, 'rRNA_16s': 0, 'rRNA_23s': 0}
     
     # Open the file and extract counts
     with open(args.f_summ, 'r') as file:
@@ -18,10 +18,6 @@ def main(args):
             line = line.strip()
             if line.startswith('CDS:'):
                 data['CDS'] = int(line.split(': ')[1])
-            elif line.startswith('gene:'):
-                data['genes'] = int(line.split(': ')[1])
-            elif line.startswith('mRNA:'):
-                data['mRNA'] = int(line.split(': ')[1])
             elif line.startswith('tRNA:'):
                 data['tRNA'] = int(line.split(': ')[1])
             elif line.startswith('rRNA:'):
@@ -44,13 +40,14 @@ def main(args):
     # Convert the dictionary to a pandas DataFrame
     df = pd.DataFrame(data, index = [args.mag])
     df.rename(columns = {'index': 'mag'}, inplace = True)
-    df.to_csv(f_out, header = False, index = False)
+    df.to_csv(args.f_out, header = False, index = True)
     
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("f_summ", help="Prokka summary TXT.")
     parser.add_argument("f_all", help="Prokka extended contig-gene annotation TSV")
+    parser.add_argument("mag", help="MAG ID")
     parser.add_argument("f_out", help="Output gene count CSV.")
     args = parser.parse_args()
     main(args)

@@ -8,26 +8,30 @@ import numpy as np
 def main(args): # A FastA file
     # Load completeness and contamination (mag,completeness,contamination)
     raw_df = pd.read_csv(args.checkm2, header = 0, sep = '\t')
-    # raw_df['Name'] = raw_df.apply(lambda row : str(row[0]).split('.')[1], axis = 1) # Reshape bin.X into X
     summ_df = raw_df[['Name', 'Completeness', 'Contamination', 'Contig_N50', 'Genome_Size', 'GC_Content']]
-    # summ_df = summ_df.reset_index()
     summ_df.columns = ['mag', 'completeness', 'contamination', 'N50', 'size', 'GC']
     summ_df['mag'] = summ_df['mag'].astype(str)  # Otherwise, interpreted as int
+    summ_df['completeness'] = summ_df['completeness'].astype(float)  # Otherwise, interpreted as str
+    summ_df['contamination'] = summ_df['contamination'].astype(float)  # Otherwise, interpreted as str
+    summ_df['N50'] = summ_df['N50'].astype(int)  # Otherwise, interpreted as str
     # Load strain heterogeneity
-    strain_df = pd.read_csv(args.checkm1, sep = '\t', header = None)
+    strain_df = pd.read_csv(args.checkm1, header = 0, sep = '\t')
     strain_df = strain_df[['Bin Id', 'Strain heterogeneity']]
-    strain_df['Bin Id'] = [m.replace('bin.', '') for m in strain_df['Bin Id']] # bin.X -> X
     strain_df.columns = ['mag', 'strain_het']
-    # Load taxonomy-based contamination
-    raw_df = pd.read_csv(args.gunc, sep = '\t', header = 0)
-    gunc_df = raw_df[['genome', 'clade_separation_score', 'n_effective_surplus_clades']]
-    gunc_df.columns = ['mag', 'clade_separation_score', 'n_effective_surplus_clades']
-    gunc_df['mag'] = gunc_df['mag'].astype(str)  # Otherwise, interpreted as int
+    strain_df['mag'] = strain_df['mag'].astype(str)  # Otherwise, interpreted as int
+    strain_df['strain_het'] = strain_df['strain_het'].astype(float)  # Otherwise, interpreted as str
     # Load MAG relative abundance
     ra_df = pd.read_csv(args.mag_ra, header = 0)
-    # Load MAG relative abundance
-    gene_cts_df = pd.read_csv(args.gene_cts, header = 0)
-    gene_cts_df.columns = ['mag', 'num_cds', 'num_genes', 'num_mrna', 'num_trna', 'num_rrna_total', 'num_rrna_5s', 'num_rrna_16s', 'num_rrna_5s']
+    ra_df['mag'] = ra_df['mag'].astype(str)  # Otherwise, interpreted as int
+    # Load taxonomy-based contamination
+    raw_df = pd.read_csv(args.gunc, header = 0, sep = '\t')
+    gunc_df = raw_df[['genome', 'clade_separation_score', 'n_effective_surplus_clades']]
+    gunc_df.rename(columns = {'genome' : 'mag'}, inplace = True)
+    gunc_df['mag'] = gunc_df['mag'].astype(str)  # Otherwise, interpreted as int
+    # Load MAG tRNA and rRNA gene content
+    gene_cts_df = pd.read_csv(args.gene_cts, header = None)
+    gene_cts_df.columns = ['mag', 'num_cds', 'num_trna', 'num_rrna_total', 'num_rrna_5s', 'num_rrna_16s', 'num_rrna_23s']
+    gene_cts_df['mag'] = gene_cts_df.apply(lambda row : str(row[0]).split('.')[1], axis = 1) # Reshape bin.X into X
     # Load classification results
     if getsize(args.gtdb) != 0: # If there were classification results
         # Load taxonomic classification (all levels)
@@ -59,26 +63,28 @@ def main(args): # A FastA file
     conditions = [
         ((summ_df['completeness'] < 50)& (summ_df['contamination'] < 10)),
         ((summ_df['completeness'] >= 50) & (summ_df['completeness'] <= 90) & (summ_df['contamination'] < 10)),
+        ((summ_df['completeness'] > 90) & (summ_df['contamination'] > 5) & (summ_df['contamination'] < 10)),
         ((summ_df['completeness'] > 90) & (summ_df['contamination'] <= 5)),
-        ((summ_df['completeness'] > 90) & (summ_df['contamination'] < 5) & (summ_df['num_trna'] >= 18 & summ_df['num_rrna_5s'] > 0 & summ_df['num_rrna_16s'] > 0 & summ_df['num_rrna_23s'] > 0)),
+        ((summ_df['completeness'] > 90) & (summ_df['contamination'] < 5) & (summ_df['num_trna'] >= 18) & (summ_df['num_rrna_5s'] > 0) & (summ_df['num_rrna_16s'] > 0) & (summ_df['num_rrna_23s'] > 0)),
     ]
-    summ_df['MIMAG_Quality'] = np.select(conditions, ['Low', 'Medium', 'High_Almost', 'High'], default = np.nan)
+    summ_df['MIMAG_Quality'] = np.select(conditions, ['Low', 'Medium', 'Medium', 'High', 'Near_Complete'], default = np.nan)
     summ_df['GUNC_Status'] = np.where((summ_df['clade_separation_score'] < 0.45), 'Pass', 'Fail')
-    Defaults are A = 1, B = 0.5, C = 5, D = 1,
-    summ_df['Overall_Score'] = summ_df['completeness'] + 0.5 * log10(summ_df['N50']) – 5 * summ_df['contamination'] – summ_df['strain_het']
+    # Defaults are A = 1, B = 0.5, C = 5, D = 1
+    summ_df['Overall_Score'] = summ_df.apply(lambda row : row[1] + 0.5 * log10(row[3]) - 5 * row[2] - row[8], axis = 1)
+    # summ_df['completeness'] + 0.5 * log10(summ_df['N50']) - 5 * summ_df['contamination'] - summ_df['strain_het']
     summ_df.to_csv(args.output, header = True, index = False)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("checkm1", help="CheckM1 report (strain heterogeneity)")
     parser.add_argument("checkm2", help="CheckM2 report")
-    parser.add_argument("gunc", help="GUNC report")
+    parser.add_argument("checkm1", help="CheckM1 report (strain heterogeneity)")
     parser.add_argument("mag_ra", help="MAG relative abundance report")
-    parser.add_argument("gene_cts", help="rRNA and total gene counts")
+    parser.add_argument("gunc", help="GUNC report")
     parser.add_argument("gtdb", help="GTDB classification report")
     parser.add_argument("diff", help="DNADiff report")
     parser.add_argument("quast", help="QUAST report")
+    parser.add_argument("gene_cts", help="rRNA and total gene counts")
     parser.add_argument("output", help="Summary output")
     args = parser.parse_args() 
     main(args)

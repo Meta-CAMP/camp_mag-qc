@@ -84,10 +84,24 @@ rule checkm_sh:
         """
 
 
+rule index_mag_bam:
+    input:
+        join(dirs.TMP, '{sample}.bam'),
+    output:
+        join(dirs.TMP, '{sample}.bam.bai'),
+    threads: config['checkm_threads'],
+    resources: 
+        mem_mb = config['checkm_mem_mb'],
+    shell:
+        """
+        samtools index -@ {threads} {input}
+        """
+
+
 rule checkm_cov:
     input:
         join(dirs.TMP, '{sample}.out'),
-        join(dirs.TMP, '{sample}.bam'),
+        join(dirs.TMP, '{sample}.bam.bai'),
     output:
         join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report_raw.tsv'),
     log:
@@ -99,12 +113,12 @@ rule checkm_cov:
         ext ='fa',
         bin_dir = join(dirs.TMP, '{sample}'),
         out_dir = join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}'),
-        checkm1_db = config['checkm1_db'],
+        bam = join(dirs.TMP, '{sample}.bam'),
     shell:
         """
-        mkdir {params.out_dir}
+        rm -r {params.out_dir}
         checkm coverage -t {threads} -x {params.ext} {params.bin_dir} \
-            {output} {input.bam} > {log} 2>&1
+            {output} {params.bam} > {log} 2>&1
         """
 
 
@@ -112,9 +126,9 @@ rule aggregate_cov:
     input:
         join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report_raw.tsv'),
     output:
-        join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report.tsv'),
+        join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report.csv'),
     params:
-        calc_script = join(dirs_scr, 'calc_ctg_cov.py'),
+        calc_script = join(dirs_scr, 'calc_mag_ra.py'),
     shell:
         """
         python {params.calc_script} {input} {output}
@@ -278,8 +292,8 @@ rule prokka:
     input:
         join(dirs.TMP, '{sample}', '{bin_num}.fa'),
     output:
-        join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.txt'),
-        join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.tsv'),
+        join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.txt'),
+        join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.tsv'),
     log:
         join(dirs.LOG, 'prokka', '{sample}.{bin_num}.out'), 
     conda:
@@ -298,13 +312,13 @@ rule prokka:
 
 rule summarize_gene_cts:
     input:
-        txt = join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.txt'),
-        tsv = join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.tsv'),
+        txt = join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.txt'),
+        tsv = join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.tsv'),
     output:
         join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.csv'),
     params:
         summ_script = join(dirs_scr, 'summarize_gene_cts.py'),
-        prefix = '{bin_num}',
+        prefix = 'bin.{bin_num}',
     shell:
         """
         python {params.summ_script} {input.txt} {input.tsv} {params.prefix} {output}
