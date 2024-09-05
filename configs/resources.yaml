@@ -29,3 +29,9 @@ mapsort_mem_mb: 50000
 
 quast_threads: 20
 quast_mem_mb: 50000
+
+
+# --- prokka --- #
+
+prokka_threads: 20
+prokka_mem_mb: 50000

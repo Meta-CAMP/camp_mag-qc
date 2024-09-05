@@ -6,6 +6,7 @@ ext: ''
 # --- checkm --- #
 
 checkm2_db: ''
+checkm1_db: ''
 
 
 # --- gunc --- #

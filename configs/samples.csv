@@ -1,2 +1,2 @@
-sample_name,mag_dir
-gut,/path/to/gut_mags
+sample_name,mag_dir,bam
+gut,/path/to/gut_mags,/path/to/gut.sort.bam
