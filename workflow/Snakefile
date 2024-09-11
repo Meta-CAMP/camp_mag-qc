@@ -288,9 +288,33 @@ rule aggregate_quast:
         aggregate_quast(input, str(output))
 
 
-rule prokka:
+
+rule ctg_name_edit:
     input:
         join(dirs.TMP, '{sample}', '{bin_num}.fa'),
+    output:
+        join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.fa_ready'),
+    params:
+        out_dir = join(dirs.OUT, '6_prokka', '{sample}'),
+        tmp = join(dirs.TMP, '{sample}', '{bin_num}.tmp.fa'),
+        out = join(dirs.TMP, '{sample}', '{bin_num}.fa'),
+    shell:
+        """
+        mkdir -p {params.out_dir}
+        if awk '/^>/ { if(length($0) > 38) exit 1 }' {input}; then
+            mv {input} {params.tmp}
+            awk '/^>/ { if(length($0) > 38) print substr($0, 1, 38); \
+            else print } !/^>/ { print }' {params.tmp} > {params.out}
+            touch {output}
+        else
+            touch {output}
+        fi
+        """
+
+
+rule prokka:
+    input:
+        join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.fa_ready'),
     output:
         join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.txt'),
         join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.tsv'),
@@ -301,10 +325,11 @@ rule prokka:
     threads: config['prokka_threads'],
     params:
         out_dir = join(dirs.OUT, '6_prokka', '{sample}'),
+        in_fa = join(dirs.TMP, '{sample}', '{bin_num}.fa'),
         prefix = 'bin.{bin_num}',
     shell:
         """
-        prokka {input} --kingdom Bacteria --outdir {params.out_dir} \
+        prokka {params.in_fa} --kingdom Bacteria --outdir {params.out_dir} \
             --prefix {params.prefix} --locustag {params.prefix} \
             --force --cpus {threads} > {log} 2>&1
         """

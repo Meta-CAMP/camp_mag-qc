@@ -62,16 +62,17 @@ def main(args): # A FastA file
     # Add in standard quality thresholds
     conditions = [
         ((summ_df['completeness'] < 50)& (summ_df['contamination'] < 10)),
+        ((summ_df['completeness'] > 50)& (summ_df['contamination'] > 10)),
         ((summ_df['completeness'] >= 50) & (summ_df['completeness'] <= 90) & (summ_df['contamination'] < 10)),
         ((summ_df['completeness'] > 90) & (summ_df['contamination'] > 5) & (summ_df['contamination'] < 10)),
         ((summ_df['completeness'] > 90) & (summ_df['contamination'] <= 5)),
         ((summ_df['completeness'] > 90) & (summ_df['contamination'] < 5) & (summ_df['num_trna'] >= 18) & (summ_df['num_rrna_5s'] > 0) & (summ_df['num_rrna_16s'] > 0) & (summ_df['num_rrna_23s'] > 0)),
     ]
-    summ_df['MIMAG_Quality'] = np.select(conditions, ['Low', 'Medium', 'Medium', 'High', 'Near_Complete'], default = np.nan)
+    summ_df['MIMAG_Quality'] = np.select(conditions, ['Low', 'Low', 'Medium', 'Medium', 'High', 'Near_Complete'], default = np.nan)
     summ_df['GUNC_Status'] = np.where((summ_df['clade_separation_score'] < 0.45), 'Pass', 'Fail')
     # Defaults are A = 1, B = 0.5, C = 5, D = 1
-    summ_df['Overall_Score'] = summ_df.apply(lambda row : row[1] + 0.5 * log10(row[3]) - 5 * row[2] - row[8], axis = 1)
-    # summ_df['completeness'] + 0.5 * log10(summ_df['N50']) - 5 * summ_df['contamination'] - summ_df['strain_het']
+    summ_df['Overall_Score'] = summ_df.apply(lambda row : row[1] + 0.5 * log10(row[3]) - 5 * row[2], axis = 1)
+    # summ_df['completeness'] + 0.5 * log10(summ_df['N50']) - 5 * summ_df['contamination'] #  - row[8], - summ_df['strain_het']
     summ_df.to_csv(args.output, header = True, index = False)
 
 
