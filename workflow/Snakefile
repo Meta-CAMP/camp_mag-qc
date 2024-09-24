@@ -293,7 +293,7 @@ rule ctg_name_edit:
     input:
         join(dirs.TMP, '{sample}', '{bin_num}.fa'),
     output:
-        join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.fa_ready'),
+        join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.fa_ready'),
     params:
         out_dir = join(dirs.OUT, '6_prokka', '{sample}'),
         tmp = join(dirs.TMP, '{sample}', '{bin_num}.tmp.fa'),
@@ -301,10 +301,10 @@ rule ctg_name_edit:
     shell:
         """
         mkdir -p {params.out_dir}
-        if awk '/^>/ { if(length($0) > 38) exit 1 }' {input}; then
+        if awk '/^>/ {{ if(length($0) > 38) exit 1 }}' {input}; then
             mv {input} {params.tmp}
-            awk '/^>/ { if(length($0) > 38) print substr($0, 1, 38); \
-            else print } !/^>/ { print }' {params.tmp} > {params.out}
+            awk '/^>/ {{ if(length($0) > 38) print substr($0, 1, 38); \
+            else print }} !/^>/ {{ print }}' {params.tmp} > {params.out}
             touch {output}
         else
             touch {output}
@@ -314,7 +314,7 @@ rule ctg_name_edit:
 
 rule prokka:
     input:
-        join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.fa_ready'),
+        join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.fa_ready'),
     output:
         join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.txt'),
         join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.tsv'),
@@ -365,7 +365,7 @@ rule summarize_reports:
     input:
         checkm2 = join(dirs.OUT, '0_checkm2', '{sample}', 'quality_report.tsv'),
         strain_het = join(dirs.OUT, '1_checkm1', 'strain_het', '{sample}', 'report.tsv'),
-        mag_ra = join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report.tsv'),
+        mag_ra = join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report.csv'),
         gunc = join(dirs.OUT, '2_gunc', '{sample}', 'GUNC.progenomes_2.1.maxCSS_level.tsv'),
         gtdb = join(dirs.OUT, '3_gtdbtk', '{sample}', 'report.tsv'),
         diff = join(dirs.OUT, '4_dnadiff', '{sample}', 'report.tsv'),
