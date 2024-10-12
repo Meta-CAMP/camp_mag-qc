@@ -293,9 +293,9 @@ rule ctg_name_edit:
     input:
         join(dirs.TMP, '{sample}', '{bin_num}.fa'),
     output:
-        join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.fa_ready'),
+        join(dirs.OUT, '6_prokka', '{sample}', 'bins', '{bin_num}.fa'),
     params:
-        out_dir = join(dirs.OUT, '6_prokka', '{sample}'),
+        out_dir = join(dirs.OUT, '6_prokka', '{sample}', 'bins'),
         tmp = join(dirs.TMP, '{sample}', '{bin_num}.tmp.fa'),
         out = join(dirs.TMP, '{sample}', '{bin_num}.fa'),
     shell:
@@ -304,17 +304,16 @@ rule ctg_name_edit:
         if awk '/^>/ {{ if(length($0) > 38) exit 1 }}' {input}; then
             mv {input} {params.tmp}
             awk '/^>/ {{ if(length($0) > 38) print substr($0, 1, 38); \
-            else print }} !/^>/ {{ print }}' {params.tmp} > {params.out}
-            touch {output}
+            else print }} !/^>/ {{ print }}' {params.tmp} > {output}
         else
-            touch {output}
+            ln -s {input} {output}
         fi
         """
 
 
 rule prokka:
     input:
-        join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.fa_ready'),
+        join(dirs.OUT, '6_prokka', '{sample}', 'bins', '{bin_num}.fa'),
     output:
         join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.txt'),
         join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.tsv'),
