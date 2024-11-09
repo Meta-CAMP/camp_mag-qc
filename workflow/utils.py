@@ -10,6 +10,7 @@ import os
 from os import makedirs, symlink
 from os.path import abspath, basename, exists, join
 import pandas as pd
+import re
 import shutil
 
 
@@ -21,6 +22,15 @@ def extract_from_gzip(ap, out):
         symlink(ap, out)
 
 
+def check_format(bin_lst):
+    camp_format = re.compile(r'^bin\.\d+\.fa$')
+    # Iterate through the files in the directory
+    for b in bin_lst:
+        if not camp_format.match(basename(b)):
+            return False # Some MAGs don't follow the CAMP naming format
+    return True # All MAGs follow the CAMP naming format
+
+
 def ingest_samples(samples, tmp):
     df = pd.read_csv(samples, header = 0, index_col = 0) # name, mag_dir, fwd, rev
     s = list(df.index)
@@ -29,11 +39,14 @@ def ingest_samples(samples, tmp):
         if not exists(join(tmp, s[i])): # Make a temporary directory for all of the MAGs in the sample
             makedirs(join(tmp, s[i]))
             with open(join(tmp, s[i] + '.out'), 'w') as f_out: # Enables the CheckM rule to run
-                for m in glob.glob(l[0] + '/*.fa*'):
-                    if 'unbinned' not in m:
-                        prefix = basename(m).split('.')[1]
-                        symlink(abspath(m), join(tmp, s[i], prefix + '.fa'))
-                        f_out.write(str(prefix) + '\n')
+                bin_lst = glob.glob(l[0] + '/*.fa*')
+                if 'bin.unbinned.fa' in bin_lst:
+                    bin_lst.remove('bin.unbinned.fa')
+                camp_format = check_format(bin_lst)
+                for j,m in enumerate(bin_lst):
+                    prefix = basename(m).split('.')[1] if camp_format else 'bin.{}'.format(j)
+                    symlink(abspath(m), join(tmp, s[i], prefix + '.fa'))
+                    f_out.write(str(prefix) + '\n')
                 symlink(abspath(l[1]), join(tmp, s[i] + '.bam'))
         # if not exists(join(tmp, s[i] + '_1.fastq')):
         #     extract_from_gzip(abspath(l[1]), join(tmp, s[i] + '_1.fastq'))
@@ -155,7 +168,7 @@ def parse_dnadiff(fi, fo):
                     ident = float(cols[1])
             output = "%s\t%s\t%i\t%.2f\t%i\t%.2f\t%.2f" % (quer, ref, lenref, float(aliref), lenquer, float(alique), float(ident))
     else:
-        quer = fi.split('/')[-1].split('.')[0]
+        quer = fi.split('/')[-1].replace('.fa', '')
         output = quer + '\tNone\t0\t0.00\t0\t0.00\t0.00'
     with open(fo, 'w') as f_out:
         f_out.write(output + '\n')

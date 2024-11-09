@@ -31,7 +31,7 @@ def main(args): # A FastA file
     # Load MAG tRNA and rRNA gene content
     gene_cts_df = pd.read_csv(args.gene_cts, header = None)
     gene_cts_df.columns = ['mag', 'num_cds', 'num_trna', 'num_rrna_total', 'num_rrna_5s', 'num_rrna_16s', 'num_rrna_23s']
-    gene_cts_df['mag'] = gene_cts_df.apply(lambda row : str(row[0]).split('.')[1], axis = 1) # Reshape bin.X into X
+    # gene_cts_df['mag'] = gene_cts_df.apply(lambda row : str(row[0]).split('.')[1], axis = 1) # Reshape bin.X into X
     # Load classification results
     if getsize(args.gtdb) != 0: # If there were classification results
         # Load taxonomic classification (all levels)
@@ -41,7 +41,7 @@ def main(args): # A FastA file
         gtdb_df['mag'] = gtdb_df['mag'].astype(str) # Otherwise, interpreted as int
         # Load MAG-reference aligned length, reference genome coverage, ANI
         raw_df = pd.read_csv(args.diff, sep = '\t', header = None)
-        raw_df[0] = raw_df.apply(lambda row : str(row[0]).split('/')[-1].split('.')[0], axis = 1) # Reshape /path/to/X.* into X
+        raw_df[0] = raw_df.apply(lambda row : str(row[0]).split('/')[-1].replace('.fa', ''), axis = 1) # Reshape /path/to/X.fa into X
         raw_df.columns = ['mag', 'ref', 'ref_len', 'ref_cov', 'bin_size', 'bin_cov', 'ANI']
         diff_df = raw_df[['mag', 'bin_cov', 'ref_cov', 'ANI']]
     else:

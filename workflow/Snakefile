@@ -275,7 +275,7 @@ rule quast:
         min_len = config['min_contig_len'],
     shell:
         """
-        quast.py --threads {threads} -r {input.ref} -m {params.min_len} -o {params.out_dir} {input.fa} --no-plots || touch {output} > {log} 2>&1
+        quast.py --threads {threads} -r {input.ref} -m {params.min_len} -o {params.out_dir} {input.fa} --no-plots -silent || touch {output}
         """
 
 
@@ -296,15 +296,12 @@ rule ctg_name_edit:
         join(dirs.OUT, '6_prokka', '{sample}', 'bins', '{bin_num}.fa'),
     params:
         out_dir = join(dirs.OUT, '6_prokka', '{sample}', 'bins'),
-        tmp = join(dirs.TMP, '{sample}', '{bin_num}.tmp.fa'),
-        out = join(dirs.TMP, '{sample}', '{bin_num}.fa'),
     shell:
         """
         mkdir -p {params.out_dir}
         if awk '/^>/ {{ if(length($0) > 38) exit 1 }}' {input}; then
-            mv {input} {params.tmp}
             awk '/^>/ {{ if(length($0) > 38) print substr($0, 1, 38); \
-            else print }} !/^>/ {{ print }}' {params.tmp} > {output}
+            else print }} !/^>/ {{ print }}' {input} > {output}
         else
             ln -s {input} {output}
         fi
@@ -315,8 +312,8 @@ rule prokka:
     input:
         join(dirs.OUT, '6_prokka', '{sample}', 'bins', '{bin_num}.fa'),
     output:
-        join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.txt'),
-        join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.tsv'),
+        join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.txt'),
+        join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.tsv'),
     log:
         join(dirs.LOG, 'prokka', '{sample}.{bin_num}.out'), 
     conda:
@@ -324,11 +321,10 @@ rule prokka:
     threads: config['prokka_threads'],
     params:
         out_dir = join(dirs.OUT, '6_prokka', '{sample}'),
-        in_fa = join(dirs.TMP, '{sample}', '{bin_num}.fa'),
-        prefix = 'bin.{bin_num}',
+        prefix = '{bin_num}',
     shell:
         """
-        prokka {params.in_fa} --kingdom Bacteria --outdir {params.out_dir} \
+        prokka {input} --kingdom Bacteria --outdir {params.out_dir} \
             --prefix {params.prefix} --locustag {params.prefix} \
             --force --cpus {threads} > {log} 2>&1
         """
@@ -336,13 +332,13 @@ rule prokka:
 
 rule summarize_gene_cts:
     input:
-        txt = join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.txt'),
-        tsv = join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.tsv'),
+        txt = join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.txt'),
+        tsv = join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.tsv'),
     output:
-        join(dirs.OUT, '6_prokka', '{sample}', 'bin.{bin_num}.csv'),
+        join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.csv'),
     params:
         summ_script = join(dirs_scr, 'summarize_gene_cts.py'),
-        prefix = 'bin.{bin_num}',
+        prefix = '{bin_num}',
     shell:
         """
         python {params.summ_script} {input.txt} {input.tsv} {params.prefix} {output}
