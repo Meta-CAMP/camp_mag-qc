@@ -1,16 +1,26 @@
 '''CLI for the CAMP MAG QC module.'''
 
-
 import click
 from click_default_group import DefaultGroup
 from contextlib import redirect_stdout
 from io import StringIO
-from os import getcwd, makedirs
-from os.path import abspath, dirname, exists, join
+#from os import getcwd, makedirs
+#from os.path import abspath, dirname, exists, join
+import os
 import pandas as pd
 from snakemake import snakemake, main
 from shutil import rmtree
 from utils import Workflow_Dirs, print_cmds, cleanup_files
+
+### Maybe this is better put in utils. Putting here temporarily
+import yaml
+
+def get_conda_prefix(yaml_file):
+    """Load conda_prefix from parameters.yaml."""
+    with open(yaml_file, "r") as file:
+        config = yaml.safe_load(file)
+    return config.get("conda_prefix", "Not Found")  # Default value if key is missing
+
 
 
 @click.group(cls = DefaultGroup, default = 'run', default_if_no_args = True)
@@ -87,39 +97,39 @@ def cmd_line(workflow, work_dir, samples, env_yamls, pyaml, ryaml, cores, env_di
     help = 'Check the module version')
 def run(cores, work_dir, samples, parameters, resources, slurm, dry_run, unlock, version): # unit_test
     # Get the absolute path of the Snakefile to find the profile configs
-    main_dir = dirname(dirname(abspath(__file__))) # /path/to/main_dir/workflow/cli.py
-    workflow = join(main_dir, 'workflow', 'Snakefile')
+    main_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # /path/to/main_dir/workflow/cli.py
+    workflow = os.path.join(main_dir, 'workflow', 'Snakefile')
 
     if version:
-        f = open(join(main_dir, 'workflow', '__init__.py')).readlines()
+        f = open(os.path.join(main_dir, 'workflow', '__init__.py')).readlines()
         m = f[0].replace('"""Top-level package for the ', '').replace(' module."""', '')
         v = f[4].split(' = ')[1]
         print('{}: version {}'.format(m, v))
         return
 
     # Set location of rule (and program) parameters and resources
-    pyaml = parameters if parameters else join(main_dir, 'configs', 'parameters.yaml')
-    ryaml = resources if resources else join(main_dir, 'configs', 'resources.yaml')
+    pyaml = parameters if parameters else os.path.join(main_dir, 'configs', 'parameters.yaml')
+    ryaml = resources if resources else os.path.join(main_dir, 'configs', 'resources.yaml')
 
     # Set up the conda environment directory
-    env_dir = join(main_dir, 'conda_envs')
-    if not exists(env_dir):
-        makedirs(env_dir)
-    env_yamls = join(main_dir, 'configs', 'conda')
+    env_dir = os.path.join(main_dir, 'conda_envs')
+    if not os.path.exists(env_dir):
+        os.makedirs(env_dir)
+    env_yamls = os.path.join(main_dir, 'configs', 'conda')
 
     # If generating unit tests, set the unit test directory (by default, is pytest's default, .tests)
-    # unit_test_dir = join(main_dir, '.tests/unit') if unit_test else None
+    # unit_test_dir = os.path.join(main_dir, '.tests/unit') if unit_test else None
 
     # If rules failed previously, unlock the directory
     if unlock:
         cmd_line(workflow, work_dir, samples, env_yamls, pyaml, ryaml,   \
                  cores, env_dir, False, unlock) # unit_test_dir
-        rmtree(join(getcwd(), '.snakemake'))
+        rmtree(os.path.join(os.getcwd(), '.snakemake'))
         
     # Run workflow
     if slurm:
         sbatch(workflow, work_dir, samples, env_yamls, pyaml, ryaml,     \
-               cores, env_dir, join(main_dir, 'configs', 'sbatch'))
+               cores, env_dir, os.path.join(main_dir, 'configs', 'sbatch'))
     elif dry_run:
         # Set up the directory structure skeleton
         Workflow_Dirs(work_dir, 'mag_qc')
@@ -146,21 +156,26 @@ def cleanup(work_dir, samples):
 
 @cli.command('test')
 def test(): 
-    main_dir = dirname(dirname(abspath(__file__))) # /path/to/main_dir/workflow/cli.py
-    workflow = join(main_dir, 'workflow', 'Snakefile')
-    work_dir = join(main_dir, 'test_out')
-    samples = join(main_dir, 'test_data', 'samples.csv')
+    main_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # /path/to/main_dir/workflow/cli.py
+    workflow = os.path.join(main_dir, 'workflow', 'Snakefile')
+    work_dir = os.path.join(main_dir, 'test_out')
+    samples = os.path.join(main_dir, 'test_data', 'samples.csv')
     
     # Set location of rule (and program) parameters and resources
-    pyaml = join(main_dir, 'test_data', 'parameters.yaml')
-    ryaml = join(main_dir, 'test_data', 'resources.yaml')
+    pyaml = os.path.join(main_dir, 'test_data', 'parameters.yaml')
+    ryaml = os.path.join(main_dir, 'test_data', 'resources.yaml')
 
     # Set up the conda environment directory
-    env_dir = join(main_dir, 'conda_envs')
-    if not exists(env_dir):
-        makedirs(env_dir)
-    env_yamls = join(main_dir, 'configs', 'conda')
+    #env_dir = os.path.join(main_dir, 'conda_envs')
+    #if not os.path.exists(env_dir):
+    #    os.makedirs(env_dir)
+    env_yamls = os.path.join(main_dir, 'configs', 'conda')
     
+    #retrieve conda environment from parameters.yaml <-- Modified by WW
+    env_dir = get_conda_prefix(pyaml)
+    print(f"env_dir retrieved from parameters.yaml: {env_dir}")
+
+
     # Run workflow
     cmd_line(workflow, work_dir, samples, env_yamls, pyaml, ryaml,   \
              10, env_dir, False, False)
@@ -173,3 +188,4 @@ cli.add_command(test)
 
 if __name__ == '__main__':
     cli()
+

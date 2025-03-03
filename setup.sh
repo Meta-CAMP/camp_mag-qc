@@ -1,0 +1,250 @@
+#!/bin/bash
+
+show_welcome() {
+    clear  # Clear the screen for a clean look
+
+    echo ""
+    sleep 0.2
+    echo " _   _      _ _          ____    _    __  __ ____           _ "
+    sleep 0.2
+    echo "| | | | ___| | | ___    / ___|  / \  |  \/  |  _ \ ___ _ __| |"
+    sleep 0.2
+    echo "| |_| |/ _ \ | |/ _ \  | |     / _ \ | |\/| | |_) / _ \ '__| |"
+    sleep 0.2
+    echo "|  _  |  __/ | | (_) | | |___ / ___ \| |  | |  __/  __/ |  |_|"
+    sleep 0.2
+    echo "|_| |_|\___|_|_|\___/   \____/_/   \_\_|  |_|_|   \___|_|  (_)"
+    sleep 0.5
+
+    echo ""
+    echo "🌲🏕️  Welcome to CAMP Setup! 🏕️🌲"
+    echo "--------------------------------------"
+    echo "🏕️  Configuring databases for CAMP MAG QC"
+    echo "🔥 Let's get everything set up properly!"
+    echo "--------------------------------------"
+    echo ""
+}
+
+show_welcome
+
+# Set work_dir
+DEFAULT_PATH=$PWD
+read -p "Enter the working directory (Press Enter for default: $DEFAULT_PATH): " USER_WORK_DIR
+MAG_QC_WORK_DIR="$(realpath "${USER_WORK_DIR:-$PWD}")"
+echo "Working directory set to: $MAG_QC_WORK_DIR"
+#echo "export ${MAG_QC_WORK_DIR} >> ~/.bashrc" 
+
+# Define variables to store user responses
+declare -A DB_SUBDIRS=(
+    ["GTDBTK_PATH"]="GTDBTk_R220"
+    ["CHECKM2_PATH"]="CheckM2_database/uniref100.KO.1.dmnd"
+    ["CHECKM_PATH"]="checkm_data_2015_01_16"
+    ["GUNC_PATH"]="gunc_db_progenomes2.1.dmnd"
+)
+
+declare -A DATABASE_PATHS
+
+
+# Install CheckM2 if not yet installed
+while true; do
+    read -p "❓ Is CheckM2 Conda environment already installed? (y/n): " CHECKM2_INSTALLED
+    case "$CHECKM2_INSTALLED" in
+        [Yy]* )
+            read -p "📂 Enter the full path to existing CheckM2 database: " CHECKM2_DB_PATH
+	    DATABASE_PATHS["CHECKM2_PATH"]="$CHECKM2_DB_PATH"
+	    echo "✅ CheckM2 database path set to: $(realpath "${CHECKM2_DB_PATH}")"
+            break
+            ;;
+        [Nn]* )
+            read -p "📂 Enter the directory to install CheckM2 (default: $MAG_QC_WORK_DIR): " CHECKM2_INSTALL_DIR
+	    CHECKM2_INSTALL_DIR="$(realpath "${CHECKM2_INSTALL_DIR:-$MAG_QC_WORK_DIR}")"
+            
+            echo "🚀 Installing CheckM2 environment at $CHECKM2_INSTALL_DIR"
+
+            # Install
+	    cd $CHECKM2_INSTALL_DIR
+            git clone --recursive https://github.com/chklovski/checkm2.git && cd checkm2
+	    conda env create -n checkm2 -f checkm2.yml
+	    conda activate checkm2
+	    python setup.py install
+            # Verify installation
+            if ! command -v checkm2 &> /dev/null; then
+                echo "❌ CheckM2 installation failed. Exiting."
+                return 1
+            fi
+
+            echo "✅ CheckM2 successfully installed!"
+
+            # Download CheckM2 database
+	    read -p "Enter path to install CheckM2 database: " CHECKM2_DB_PATH
+            cd $CHECKM2_DB_PATH
+            
+            echo "⬇️ Downloading CheckM2 database to $CHECKM2_DB_PATH..."
+            checkm2 database --download --path "$CHECKM2_DB_PATH"
+	    conda deactivate
+	    DATABASE_PATHS["CHECKM2_PATH"]="$CHECKM2_DB_PATH"
+            echo "✅ CheckM2 database downloaded successfully!"
+            cd $MAG_QC_WORK_DIR
+	    break
+            ;;
+    * ) echo "⚠️ Please answer 'y(es)' or 'n(o)'.";;
+    esac
+done
+
+
+install_database() {
+    local DB_NAME="$1"
+    local DB_VAR_NAME="$2"
+    local INSTALL_DIR="$3"
+    local FINAL_DB_PATH="$INSTALL_DIR/${DB_SUBDIRS[$DB_VAR_NAME]}"
+
+    echo "🚀 Installing $DB_NAME database in: $FINAL_DB_PATH"	
+
+    case "$DB_VAR_NAME" in
+        "GTDBTK_PATH")
+            wget -c https://data.ace.uq.edu.au/public/gtdb/data/releases/release220/220.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r220_data.tar.gz -P $INSTALL_DIR
+            mkdir -p $FINAL_DB_PATH
+	    tar -xzf "$INSTALL_DIR/gtdbtk_r220_data.tar.gz" -C "$FINAL_DB_PATH"
+            #rm "$INSTALL_DIR/gtdbtk_r202_data.tar.gz"
+            echo "✅ GTDB-Tk database installed successfully!"
+            ;;
+        "CHECKM_PATH")
+            wget https://data.ace.uq.edu.au/public/CheckM_databases/checkm_data_2015_01_16.tar.gz -P $INSTALL_DIR
+	    mkdir -p $FINAL_DB_PATH
+            tar -xzf "$INSTALL_DIR/checkm_data_2015_01_16.tar.gz" -C "$FINAL_DB_PATH"
+            #rm "$INSTALL_DIR/checkm_data_2015_01_16.tar.gz"
+            echo "✅ CheckM1 database installed successfully!"
+            ;;
+        "GUNC_PATH")
+            gunc download_db $INSTALL_DIR
+	    
+            echo "✅ GUNC database installed successfully!"
+            ;;
+        *)
+            echo "⚠️ Unknown database: $DB_NAME"
+            ;;
+    esac
+
+    DATABASE_PATHS[$DB_VAR_NAME]="$FINAL_DB_PATH"
+}
+
+
+# Function to ask user about each database
+ask_database() {
+    local DB_NAME="$1"
+    local DB_VAR_NAME="$2"
+    local DB_PATH=""
+
+    echo "🛠️  Checking for $DB_NAME database..."
+
+    while true; do
+        read -p "❓ Do you already have $DB_NAME installed? (y/n): " RESPONSE
+        case "$RESPONSE" in
+            [Yy]* )
+                while true; do
+                    read -p "📂 Enter the path to your existing $DB_NAME database: " DB_PATH
+                    if [[ -d "$DB_PATH" || -f "$DB_PATH" ]]; then
+                        DATABASE_PATHS[$DB_VAR_NAME]="$DB_PATH"
+                        echo "✅ $DB_NAME path set to: $DB_PATH"
+                        return  # Exit the function immediately after successful input
+                    else
+                        echo "⚠️ The provided path does not exist or is empty. Please check and try again."
+                        read -p "Do you want to re-enter the path (r) or install $DB_NAME instead (i)? (r/i): " RETRY
+                        if [[ "$RETRY" == "i" ]]; then
+                            break  # Exit inner loop to start installation
+                        fi
+                    fi
+                done
+                if [[ "$RETRY" == "i" ]]; then
+                    break  # Exit outer loop to install the database
+                fi
+                ;;
+            [Nn]* )
+                read -p "📂 Enter the directory where you want to install $DB_NAME: " DB_PATH
+                install_database "$DB_NAME" "$DB_VAR_NAME" "$DB_PATH"
+                return  # Exit function after installation
+                ;;
+            * ) echo "⚠️ Please enter 'y(es)' or 'n(o)'.";;
+        esac
+    done
+}
+
+# Ask for all required databases
+ask_database "GTDB-Tk" "GTDBTK_PATH"
+ask_database "CheckM" "CHECKM_PATH"
+ask_database "GUNC" "GUNC_PATH"
+
+# Print summary of user choices
+echo ""
+echo "🎯 SUMMARY OF DATABASE LOCATIONS:"
+echo "------------------------------------"
+for key in "${!DATABASE_PATHS[@]}"; do
+    echo "📌 $key: ${DATABASE_PATHS[$key]}"
+done
+echo "------------------------------------"
+echo "✅ Setup complete!"
+
+
+
+
+# --- Generate test_data/parameters.yaml ---
+
+# Set the path for the new parameters.yaml
+PARAMS_FILE="$MAG_QC_WORK_DIR/test_data/parameters.yaml"
+
+echo "🚀 Generating test_data/parameters.yaml in $PARAMS_FILE ..."
+
+# Default values for analysis parameters
+MINQUAL=30
+MINCOV=10
+DOMINANT_FRQ_THRSH=0.8
+MIN_CONTIG_LEN=100
+
+# Use existing paths from DATABASE_PATHS
+CHECKM2_DB="${DATABASE_PATHS[CHECKM2_PATH]}"
+CHECKM1_DB="${DATABASE_PATHS[CHECKM_PATH]}"
+DIAMOND_DB="${DATABASE_PATHS[GUNC_PATH]}"
+GTDB_DB="${DATABASE_PATHS[GTDBTK_PATH]}"
+EXT_PATH="$MAG_QC_WORK_DIR/workflow/ext"  # Assuming extensions are in workflow/ext
+
+# Install conda env. To be completed later. For now, assume all installed in default conda env dir
+DEFAULT_CONDA_ENV_DIR=$(conda env list | grep checkm2 | awk '{print $2}' | sed 's|/checkm2||')
+echo "default conda env directory: $DEFAULT_CONDA_ENV_DIR"
+
+
+# Create test_data/parameters.yaml
+
+cat <<EOL > "$PARAMS_FILE"
+# Parameters config
+
+ext: '$EXT_PATH'
+conda_prefix: '$DEFAULT_CONDA_ENV_DIR'
+
+# --- checkm --- #
+checkm2_db: '$CHECKM2_DB'
+checkm1_db: '$CHECKM1_DB'
+
+# --- gunc --- #
+diamond_db: '$DIAMOND_DB'
+
+# --- gtdbtk --- #
+gtdb_db: '$GTDB_DB'
+
+# --- cmseq --- #
+minqual: $MINQUAL
+mincov: $MINCOV
+dominant_frq_thrsh: $DOMINANT_FRQ_THRSH
+
+# --- quast --- #
+min_contig_len: $MIN_CONTIG_LEN
+EOL
+
+echo "✅ Configuration file created at: $PARAMS_FILE"
+echo "📄 Contents of test_data/parameters.yaml:"
+cat "$PARAMS_FILE"
+
+echo "🎯 Setup complete! You can now run:"
+echo "python $MAG_QC_WORK_DIR/workflow/mag_qc.py test"
+ 
+
+

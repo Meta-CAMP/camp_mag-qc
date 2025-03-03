@@ -3,8 +3,9 @@
 
 from contextlib import redirect_stderr
 import glob
-from os import makedirs, remove
-from os.path import basename, exists, getsize, isdir, join
+import os
+#from os import makedirs
+#from os.path import getsize, isdir, os.path.join
 import pandas as pd
 from utils import Workflow_Dirs, ingest_samples, add_bin_num, get_bin_nums, pair_mag_refs, parse_dnadiff, aggregate_quast # polymut_from_cmseq
 
@@ -18,8 +19,8 @@ SAMPLES = ingest_samples(config['samples'], dirs.TMP)
 
 
 # Specify the location of any external resources and scripts
-dirs_ext = config['ext'] # join(dirname(abspath(__file__)), 'ext')
-dirs_scr = join(dirs_ext, 'scripts')
+dirs_ext = config['ext'] # os.path.join(dirname(abspath(__file__)), 'ext')
+dirs_scr = os.path.join(dirs_ext, 'scripts')
 
 
 # --- Workflow output --- #
@@ -27,7 +28,7 @@ dirs_scr = join(dirs_ext, 'scripts')
 
 rule all:
     input:
-        join(dirs.OUT, 'final_reports', 'complete.txt') 
+        os.path.join(dirs.OUT, 'final_reports', 'complete.txt') 
 
 
 # --- Workflow steps --- #
@@ -35,25 +36,26 @@ rule all:
 
 rule checkm2:
     input:
-        join(dirs.TMP, '{sample}.out'),
+        os.path.join(dirs.TMP, '{sample}.out'),
     output:
-        join(dirs.OUT, '0_checkm2', '{sample}', 'quality_report.tsv'),
-        # n50_sz = join(dirs.OUT, '0_checkm2', '{sample}', 'storage/bin_stats_ext.tsv'),
+        os.path.join(dirs.OUT, '0_checkm2', '{sample}', 'quality_report.tsv'),
+        # n50_sz = os.path.join(dirs.OUT, '0_checkm2', '{sample}', 'storage/bin_stats_ext.tsv'),
     log:
-        join(dirs.LOG, 'checkm', '{sample}.checkm2.out'), 
+        os.path.join(dirs.LOG, 'checkm', '{sample}.checkm2.out'), 
     conda:
-        join(config['env_yamls'], 'checkm2.yaml'),
+        "checkm2"
+        #os.path.join(config['env_yamls'], 'checkm2.yaml'),
     threads: config['checkm_threads'],
     resources:
         mem_mb = config['checkm_mem_mb'],
     params:
         extension ='fa',
-        bin_dir = join(dirs.TMP, '{sample}'),
-        out_dir = join(dirs.OUT, '0_checkm2', '{sample}'),
+        bin_dir = os.path.join(dirs.TMP, '{sample}'),
+        out_dir = os.path.join(dirs.OUT, '0_checkm2', '{sample}'),
         checkm2_db = config['checkm2_db'],
-        # tmp_0 = join(dirs.OUT, '0_checkm2', '{sample}', 'quality_report.tsv'),
-        # tmp_1 = join(dirs.OUT, '0_checkm2', '{sample}', 'tmp_1.csv'),
-        # tmp_2 = join(dirs.OUT, '0_checkm2', '{sample}', 'tmp_2.csv'),
+        # tmp_0 = os.path.join(dirs.OUT, '0_checkm2', '{sample}', 'quality_report.tsv'),
+        # tmp_1 = os.path.join(dirs.OUT, '0_checkm2', '{sample}', 'tmp_1.csv'),
+        # tmp_2 = os.path.join(dirs.OUT, '0_checkm2', '{sample}', 'tmp_2.csv'),
     shell:
         """
         checkm2 predict --threads {threads} --input {params.bin_dir} --output-directory {params.out_dir} \
@@ -63,18 +65,18 @@ rule checkm2:
 
 rule checkm_sh:
     input:
-        join(dirs.TMP, '{sample}.out'),
+        os.path.join(dirs.TMP, '{sample}.out'),
     output:
-        join(dirs.OUT, '1_checkm1', 'strain_het', '{sample}', 'report.tsv'),
+        os.path.join(dirs.OUT, '1_checkm1', 'strain_het', '{sample}', 'report.tsv'),
     log:
-        join(dirs.LOG, 'checkm', '{sample}.strain_het.out'), 
+        os.path.join(dirs.LOG, 'checkm', '{sample}.strain_het.out'), 
     threads: config['checkm_threads'],
     resources:
         mem_mb = config['checkm_mem_mb'],
     params:
         ext ='fa',
-        bin_dir = join(dirs.TMP, '{sample}'),
-        out_dir = join(dirs.OUT, '1_checkm1', 'strain_het', '{sample}'),
+        bin_dir = os.path.join(dirs.TMP, '{sample}'),
+        out_dir = os.path.join(dirs.OUT, '1_checkm1', 'strain_het', '{sample}'),
         checkm1_db = config['checkm1_db'],
     shell:
         """
@@ -86,9 +88,9 @@ rule checkm_sh:
 
 rule index_mag_bam:
     input:
-        join(dirs.TMP, '{sample}.bam'),
+        os.path.join(dirs.TMP, '{sample}.bam'),
     output:
-        join(dirs.TMP, '{sample}.bam.bai'),
+        os.path.join(dirs.TMP, '{sample}.bam.bai'),
     threads: config['checkm_threads'],
     resources: 
         mem_mb = config['checkm_mem_mb'],
@@ -100,20 +102,20 @@ rule index_mag_bam:
 
 rule checkm_cov:
     input:
-        join(dirs.TMP, '{sample}.out'),
-        join(dirs.TMP, '{sample}.bam.bai'),
+        os.path.join(dirs.TMP, '{sample}.out'),
+        os.path.join(dirs.TMP, '{sample}.bam.bai'),
     output:
-        join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report_raw.tsv'),
+        os.path.join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report_raw.tsv'),
     log:
-        join(dirs.LOG, 'checkm', '{sample}.mag_ra.out'), 
+        os.path.join(dirs.LOG, 'checkm', '{sample}.mag_ra.out'), 
     threads: config['checkm_threads'],
     resources:
         mem_mb = config['checkm_mem_mb'],
     params:
         ext ='fa',
-        bin_dir = join(dirs.TMP, '{sample}'),
-        out_dir = join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}'),
-        bam = join(dirs.TMP, '{sample}.bam'),
+        bin_dir = os.path.join(dirs.TMP, '{sample}'),
+        out_dir = os.path.join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}'),
+        bam = os.path.join(dirs.TMP, '{sample}.bam'),
     shell:
         """
         rm -r {params.out_dir}
@@ -124,11 +126,11 @@ rule checkm_cov:
 
 rule aggregate_cov:
     input:
-        join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report_raw.tsv'),
+        os.path.join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report_raw.tsv'),
     output:
-        join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report.csv'),
+        os.path.join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report.csv'),
     params:
-        calc_script = join(dirs_scr, 'calc_mag_ra.py'),
+        calc_script = os.path.join(dirs_scr, 'calc_mag_ra.py'),
     shell:
         """
         python {params.calc_script} {input} {output}
@@ -137,17 +139,17 @@ rule aggregate_cov:
 
 rule gunc:
     input:
-        join(dirs.TMP, '{sample}.out'),
+        os.path.join(dirs.TMP, '{sample}.out'),
     output:
-        join(dirs.OUT, '2_gunc', '{sample}', 'GUNC.progenomes_2.1.maxCSS_level.tsv'),
+        os.path.join(dirs.OUT, '2_gunc', '{sample}', 'GUNC.progenomes_2.1.maxCSS_level.tsv'),
     log:
-        join(dirs.LOG, 'gunc', '{sample}.out'),
+        os.path.join(dirs.LOG, 'gunc', '{sample}.out'),
     threads: config['gunc_threads'],
     resources:
         mem_mb = config['gunc_mem_mb'],
     params:
-        bin_dir = join(dirs.TMP, '{sample}'),
-        out_dir = join(dirs.OUT, '2_gunc', '{sample}'),
+        bin_dir = os.path.join(dirs.TMP, '{sample}'),
+        out_dir = os.path.join(dirs.OUT, '2_gunc', '{sample}'),
         diamond_db = config['diamond_db'],
     shell:
         """
@@ -158,17 +160,17 @@ rule gunc:
 
 rule gtdbtk:
     input:
-        join(dirs.TMP, '{sample}.out'),
+        os.path.join(dirs.TMP, '{sample}.out'),
     output:
-        join(dirs.OUT, '3_gtdbtk', '{sample}', 'report.tsv'),
+        os.path.join(dirs.OUT, '3_gtdbtk', '{sample}', 'report.tsv'),
     log:
-        join(dirs.LOG, 'gtdbtk', '{sample}.out'),
+        os.path.join(dirs.LOG, 'gtdbtk', '{sample}.out'),
     threads: config['gtdbtk_threads'],
     resources:
         mem_mb = config['gtdbtk_mem_mb'],
     params:
-        bin_dir = join(dirs.TMP, '{sample}'),
-        out_dir = join(dirs.OUT, '3_gtdbtk', '{sample}'),
+        bin_dir = os.path.join(dirs.TMP, '{sample}'),
+        out_dir = os.path.join(dirs.OUT, '3_gtdbtk', '{sample}'),
         gtdb_db = config['gtdb_db'],
         ext = 'fa',
     shell:
@@ -187,15 +189,15 @@ rule gtdbtk:
 
 rule get_mag_refs:
     input:
-        join(dirs.OUT, '3_gtdbtk', '{sample}', 'report.tsv'),
+        os.path.join(dirs.OUT, '3_gtdbtk', '{sample}', 'report.tsv'),
     output:
-        join(dirs.OUT, '4_dnadiff', '{sample}', 'mag_refs.out'),
+        os.path.join(dirs.OUT, '4_dnadiff', '{sample}', 'mag_refs.out'),
     params:
-        out_dir = join(dirs.OUT, '4_dnadiff', '{sample}'),
+        out_dir = os.path.join(dirs.OUT, '4_dnadiff', '{sample}'),
         gtdb_db = config['gtdb_db'],
     run:
-        if not isdir(params.out_dir): makedirs(params.out_dir)
-        if getsize(str(input)) != 0:
+        if not os.path.isdir(params.out_dir): os.makedirs(params.out_dir)
+        if os.path.getsize(str(input)) != 0:
             df = pd.read_csv(str(input), sep = '\t')
             df.apply(lambda row : pair_mag_refs(row, params.out_dir, params.gtdb_db), axis = 1)
         open(str(output), 'w').close()
@@ -203,16 +205,16 @@ rule get_mag_refs:
 
 rule dnadiff:
     input:
-        fa = join(dirs.TMP, '{sample}', '{bin_num}.fa'),
-        made_ref = join(dirs.OUT, '4_dnadiff', '{sample}', 'mag_refs.out'),
+        fa = os.path.join(dirs.TMP, '{sample}', '{bin_num}.fa'),
+        made_ref = os.path.join(dirs.OUT, '4_dnadiff', '{sample}', 'mag_refs.out'),
     output:
-        ref = join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}.ref.fa'),
-        rep = join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}' + '.report'),
+        ref = os.path.join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}.ref.fa'),
+        rep = os.path.join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}' + '.report'),
     log:
-        join(dirs.LOG, 'dnadiff', '{sample}.{bin_num}.out'), 
+        os.path.join(dirs.LOG, 'dnadiff', '{sample}.{bin_num}.out'), 
     params:
-        prefix = join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}'),
-        ref = join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}.ref'),
+        prefix = os.path.join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}'),
+        ref = os.path.join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}.ref'),
     shell:
         """
         if [[ -f "{params.ref}" ]]; then
@@ -233,9 +235,9 @@ rule dnadiff:
 
 rule parse_dnadiff:
     input:
-        join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}' + '.report'),
+        os.path.join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}' + '.report'),
     output:
-        join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}' + '.diff.tsv'),
+        os.path.join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}' + '.diff.tsv'),
     run:
         parse_dnadiff(str(input), str(output))
 
@@ -244,7 +246,7 @@ rule aggregate_dnadiff:
     input:
         lambda wildcards: expand(rules.parse_dnadiff.output, bin_num = get_bin_nums(wildcards.sample, dirs.TMP), sample = wildcards.sample),
     output:
-        join(dirs.OUT, '4_dnadiff', '{sample}', 'report.tsv'),
+        os.path.join(dirs.OUT, '4_dnadiff', '{sample}', 'report.tsv'),
     shell:
         """
         tmp=`echo -n "{input}" | wc -c`
@@ -259,19 +261,20 @@ rule aggregate_dnadiff:
 
 rule quast:
     input:
-        fa = join(dirs.TMP,'{sample}','{bin_num}.fa'),
-        ref = join(dirs.OUT,'4_dnadiff','{sample}','{bin_num}.ref.fa'),
+        fa = os.path.join(dirs.TMP,'{sample}','{bin_num}.fa'),
+        ref = os.path.join(dirs.OUT,'4_dnadiff','{sample}','{bin_num}.ref.fa'),
     output:
-        join(dirs.OUT, '5_quast', '{sample}', '{bin_num}', 'report.tsv'),
+        os.path.join(dirs.OUT, '5_quast', '{sample}', '{bin_num}', 'report.tsv'),
     log:
-        join(dirs.LOG, 'quast', '{sample}.{bin_num}.out'), 
+        os.path.join(dirs.LOG, 'quast', '{sample}.{bin_num}.out'), 
     conda:
-        join(config['env_yamls'], 'quast.yaml'),
+        "quast"
+        #os.path.join(config['env_yamls'], 'quast.yaml'),
     threads: config['quast_threads'],
     resources:
         mem_mb = config['quast_mem_mb'],
     params:
-        out_dir = join(dirs.OUT, '5_quast', '{sample}', '{bin_num}'),
+        out_dir = os.path.join(dirs.OUT, '5_quast', '{sample}', '{bin_num}'),
         min_len = config['min_contig_len'],
     shell:
         """
@@ -283,7 +286,7 @@ rule aggregate_quast:
     input:
         lambda wildcards: expand(rules.quast.output, bin_num = get_bin_nums(wildcards.sample, dirs.TMP), sample = wildcards.sample),
     output:
-        join(dirs.OUT, '5_quast', '{sample}', 'report.csv'),
+        os.path.join(dirs.OUT, '5_quast', '{sample}', 'report.csv'),
     run:
         aggregate_quast(input, str(output))
 
@@ -291,11 +294,11 @@ rule aggregate_quast:
 
 rule ctg_name_edit:
     input:
-        join(dirs.TMP, '{sample}', '{bin_num}.fa'),
+        os.path.join(dirs.TMP, '{sample}', '{bin_num}.fa'),
     output:
-        join(dirs.OUT, '6_prokka', '{sample}', 'bins', '{bin_num}.fa'),
+        os.path.join(dirs.OUT, '6_prokka', '{sample}', 'bins', '{bin_num}.fa'),
     params:
-        out_dir = join(dirs.OUT, '6_prokka', '{sample}', 'bins'),
+        out_dir = os.path.join(dirs.OUT, '6_prokka', '{sample}', 'bins'),
     shell:
         """
         mkdir -p {params.out_dir}
@@ -310,17 +313,18 @@ rule ctg_name_edit:
 
 rule prokka:
     input:
-        join(dirs.OUT, '6_prokka', '{sample}', 'bins', '{bin_num}.fa'),
+        os.path.join(dirs.OUT, '6_prokka', '{sample}', 'bins', '{bin_num}.fa'),
     output:
-        join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.txt'),
-        join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.tsv'),
+        os.path.join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.txt'),
+        os.path.join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.tsv'),
     log:
-        join(dirs.LOG, 'prokka', '{sample}.{bin_num}.out'), 
+        os.path.join(dirs.LOG, 'prokka', '{sample}.{bin_num}.out'), 
     conda:
-        join(config['env_yamls'], 'prokka.yaml'),
+        "prokka"
+        #os.path.join(config['env_yamls'], 'prokka.yaml'),
     threads: config['prokka_threads'],
     params:
-        out_dir = join(dirs.OUT, '6_prokka', '{sample}'),
+        out_dir = os.path.join(dirs.OUT, '6_prokka', '{sample}'),
         prefix = '{bin_num}',
     shell:
         """
@@ -332,12 +336,12 @@ rule prokka:
 
 rule summarize_gene_cts:
     input:
-        txt = join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.txt'),
-        tsv = join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.tsv'),
+        txt = os.path.join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.txt'),
+        tsv = os.path.join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.tsv'),
     output:
-        join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.csv'),
+        os.path.join(dirs.OUT, '6_prokka', '{sample}', '{bin_num}.csv'),
     params:
-        summ_script = join(dirs_scr, 'summarize_gene_cts.py'),
+        summ_script = os.path.join(dirs_scr, 'summarize_gene_cts.py'),
         prefix = '{bin_num}',
     shell:
         """
@@ -349,7 +353,7 @@ rule aggregate_gene_cts:
     input:
         lambda wildcards: expand(rules.summarize_gene_cts.output, bin_num = get_bin_nums(wildcards.sample, dirs.TMP), sample = wildcards.sample),
     output:
-        join(dirs.OUT, '6_prokka', '{sample}', 'report.csv'),
+        os.path.join(dirs.OUT, '6_prokka', '{sample}', 'report.csv'),
     shell:
         """
         cat {input} > {output}
@@ -358,18 +362,18 @@ rule aggregate_gene_cts:
 
 rule summarize_reports:
     input:
-        checkm2 = join(dirs.OUT, '0_checkm2', '{sample}', 'quality_report.tsv'),
-        strain_het = join(dirs.OUT, '1_checkm1', 'strain_het', '{sample}', 'report.tsv'),
-        mag_ra = join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report.csv'),
-        gunc = join(dirs.OUT, '2_gunc', '{sample}', 'GUNC.progenomes_2.1.maxCSS_level.tsv'),
-        gtdb = join(dirs.OUT, '3_gtdbtk', '{sample}', 'report.tsv'),
-        diff = join(dirs.OUT, '4_dnadiff', '{sample}', 'report.tsv'),
-        quast = join(dirs.OUT, '5_quast', '{sample}', 'report.csv'),
-        gene_cts = join(dirs.OUT, '6_prokka', '{sample}', 'report.csv'),
+        checkm2 = os.path.join(dirs.OUT, '0_checkm2', '{sample}', 'quality_report.tsv'),
+        strain_het = os.path.join(dirs.OUT, '1_checkm1', 'strain_het', '{sample}', 'report.tsv'),
+        mag_ra = os.path.join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report.csv'),
+        gunc = os.path.join(dirs.OUT, '2_gunc', '{sample}', 'GUNC.progenomes_2.1.maxCSS_level.tsv'),
+        gtdb = os.path.join(dirs.OUT, '3_gtdbtk', '{sample}', 'report.tsv'),
+        diff = os.path.join(dirs.OUT, '4_dnadiff', '{sample}', 'report.tsv'),
+        quast = os.path.join(dirs.OUT, '5_quast', '{sample}', 'report.csv'),
+        gene_cts = os.path.join(dirs.OUT, '6_prokka', '{sample}', 'report.csv'),
     output:
-        join(dirs.OUT, 'final_reports', '{sample}.summary.csv'),
+        os.path.join(dirs.OUT, 'final_reports', '{sample}.summary.csv'),
     params:
-        summ_script = join(dirs_scr, 'summarize_reports.py'),
+        summ_script = os.path.join(dirs_scr, 'summarize_reports.py'),
     shell:
         """
         python {params.summ_script} {input.checkm2} {input.strain_het} {input.mag_ra} {input.gunc} {input.gtdb} {input.diff} {input.quast} {input.gene_cts} {output} 
@@ -379,11 +383,12 @@ rule summarize_reports:
 
 rule make_config:
     input:
-        expand(join(dirs.OUT, 'final_reports', '{sample}.summary.csv'), sample = SAMPLES),
+        expand(os.path.join(dirs.OUT, 'final_reports', '{sample}.summary.csv'), sample = SAMPLES),
     output:
-        join(dirs.OUT, 'final_reports', 'complete.txt'),
+        os.path.join(dirs.OUT, 'final_reports', 'complete.txt'),
     params:
-        out_dir = join(dirs.OUT, 'final_reports'),
+        out_dir = os.path.join(dirs.OUT, 'final_reports'),
     run:
         open(str(output), 'w').close()
+
 
