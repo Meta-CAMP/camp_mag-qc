@@ -16,13 +16,18 @@ show_welcome() {
     echo "|_| |_|\___|_|_|\___/   \____/_/   \_\_|  |_|_|   \___|_|  (_)"
     sleep 0.5
 
-    echo ""
-    echo "🌲🏕️  Welcome to CAMP Setup! 🏕️🌲"
-    echo "--------------------------------------"
-    echo "🏕️  Configuring databases for CAMP MAG QC"
-    echo "🔥 Let's get everything set up properly!"
-    echo "--------------------------------------"
-    echo ""
+echo ""
+echo "🌲🏕️  WELCOME TO CAMP SETUP! 🏕️🌲"
+echo "===================================================="
+echo ""
+echo "   🏕️  Configuring Databases & Conda Environments"
+echo "       for CAMP MAG QC"
+echo ""
+echo "   🔥 Let's get everything set up properly!"
+echo ""
+echo "===================================================="
+echo ""
+
 }
 
 show_welcome
@@ -44,48 +49,66 @@ declare -A DB_SUBDIRS=(
 
 declare -A DATABASE_PATHS
 
-
 # Install CheckM2 if not yet installed
 while true; do
     read -p "❓ Is CheckM2 Conda environment already installed? (y/n): " CHECKM2_INSTALLED
     case "$CHECKM2_INSTALLED" in
         [Yy]* )
-            read -p "📂 Enter the full path to existing CheckM2 database: " CHECKM2_DB_PATH
-	    DATABASE_PATHS["CHECKM2_PATH"]="$CHECKM2_DB_PATH"
-	    echo "✅ CheckM2 database path set to: $(realpath "${CHECKM2_DB_PATH}")"
-            break
+            # Check if the conda environment exists
+            if conda env list | grep -q "checkm2"; then
+                DEFAULT_CONDA_ENV_DIR=$(conda env list | grep checkm2 | awk '{print $2}' | sed 's|/checkm2||')
+                echo "✅ CheckM2 environment found at: $DEFAULT_CONDA_ENV_DIR"
+                
+                read -p "📂 Enter the full path to existing CheckM2 database: " CHECKM2_DB_PATH
+                DATABASE_PATHS["CHECKM2_PATH"]="$CHECKM2_DB_PATH"
+                echo "✅ CheckM2 database path set to: $(realpath "${CHECKM2_DB_PATH}")"
+                break
+            else
+                echo "⚠️ CheckM2 Conda environment not found!"
+                read -p "❓ Would you like to reinstall CheckM2? (y/n): " REINSTALL_CHOICE
+                if [[ "$REINSTALL_CHOICE" =~ ^[Yy]$ ]]; then
+                    CHECKM2_INSTALLED="n"
+                else
+                    echo "❌ CheckM2 environment is required but was not found. Exiting."
+                    exit 1
+                fi
+            fi
             ;;
         [Nn]* )
             read -p "📂 Enter the directory to install CheckM2 (default: $MAG_QC_WORK_DIR): " CHECKM2_INSTALL_DIR
-	    CHECKM2_INSTALL_DIR="$(realpath "${CHECKM2_INSTALL_DIR:-$MAG_QC_WORK_DIR}")"
+            CHECKM2_INSTALL_DIR="$(realpath "${CHECKM2_INSTALL_DIR:-$MAG_QC_WORK_DIR}")"
             
             echo "🚀 Installing CheckM2 environment at $CHECKM2_INSTALL_DIR"
 
             # Install
-	    cd $CHECKM2_INSTALL_DIR
+            cd $CHECKM2_INSTALL_DIR
             git clone --recursive https://github.com/chklovski/checkm2.git && cd checkm2
-	    conda env create -n checkm2 -f checkm2.yml
-	    conda activate checkm2
-	    python setup.py install
+            conda env create -n checkm2 -f checkm2.yml
+            conda activate checkm2
+            python setup.py install
+
             # Verify installation
             if ! command -v checkm2 &> /dev/null; then
                 echo "❌ CheckM2 installation failed. Exiting."
-                return 1
+                exit 1
             fi
 
             echo "✅ CheckM2 successfully installed!"
 
+            # Get default Conda environment directory
+            DEFAULT_CONDA_ENV_DIR=$(conda env list | grep checkm2 | awk '{print $2}' | sed 's|/checkm2||')
+            echo "📍 Default Conda environment directory: $DEFAULT_CONDA_ENV_DIR"
+
             # Download CheckM2 database
-	    read -p "Enter path to install CheckM2 database: " CHECKM2_DB_PATH
-            cd $CHECKM2_DB_PATH
-            
+            read -p "📂 Enter path to install CheckM2 database: " CHECKM2_DB_PATH
             echo "⬇️ Downloading CheckM2 database to $CHECKM2_DB_PATH..."
             checkm2 database --download --path "$CHECKM2_DB_PATH"
-	    conda deactivate
-	    DATABASE_PATHS["CHECKM2_PATH"]="$CHECKM2_DB_PATH"
+
+            conda deactivate
+            DATABASE_PATHS["CHECKM2_PATH"]="$CHECKM2_DB_PATH"
             echo "✅ CheckM2 database downloaded successfully!"
             cd $MAG_QC_WORK_DIR
-	    break
+            break
             ;;
     * ) echo "⚠️ Please answer 'y(es)' or 'n(o)'.";;
     esac
@@ -127,7 +150,6 @@ install_database() {
 
     DATABASE_PATHS[$DB_VAR_NAME]="$FINAL_DB_PATH"
 }
-
 
 # Function to ask user about each database
 ask_database() {
@@ -174,23 +196,38 @@ ask_database "GTDB-Tk" "GTDBTK_PATH"
 ask_database "CheckM" "CHECKM_PATH"
 ask_database "GUNC" "GUNC_PATH"
 
-# Print summary of user choices
-echo ""
-echo "🎯 SUMMARY OF DATABASE LOCATIONS:"
-echo "------------------------------------"
-for key in "${!DATABASE_PATHS[@]}"; do
-    echo "📌 $key: ${DATABASE_PATHS[$key]}"
-done
-echo "------------------------------------"
 echo "✅ Setup complete!"
 
 
+# Install conda env: quast, prokka. 
+cd $DEFAULT_PATH #camp_mag_qc
+check_conda_env() {
+    conda env list | awk '{print $2}' | grep -qx "$DEFAULT_CONDA_ENV_DIR/$1"
+}
+
+# Check for Prokka environment
+if check_conda_env "prokka"; then
+    echo "✅ Prokka environment is already installed in $DEFAULT_CONDA_ENV_DIR."
+else
+    echo "🚀 Installing Prokka in $DEFAULT_CONDA_ENV_DIR/prokka..."
+    conda env create --file configs/conda/prokka.yaml --prefix "$DEFAULT_CONDA_ENV_DIR/prokka"
+    echo "✅ Prokka installed successfully!"
+fi
+
+# Check for Quast environment
+if check_conda_env "quast"; then
+    echo "✅ Quast environment is already installed in $DEFAULT_CONDA_ENV_DIR."
+else
+    echo "🚀 Installing Quast in $DEFAULT_CONDA_ENV_DIR/quast..."
+    conda env create --file configs/conda/quast.yaml --prefix "$DEFAULT_CONDA_ENV_DIR/quast"
+    echo "✅ Quast installed successfully!"
+fi
 
 
 # --- Generate test_data/parameters.yaml ---
 
 # Set the path for the new parameters.yaml
-PARAMS_FILE="$MAG_QC_WORK_DIR/test_data/parameters.yaml"
+PARAMS_FILE="$DEFAULT_PATH/test_data/parameters.yaml" 
 
 echo "🚀 Generating test_data/parameters.yaml in $PARAMS_FILE ..."
 
@@ -207,18 +244,13 @@ DIAMOND_DB="${DATABASE_PATHS[GUNC_PATH]}"
 GTDB_DB="${DATABASE_PATHS[GTDBTK_PATH]}"
 EXT_PATH="$MAG_QC_WORK_DIR/workflow/ext"  # Assuming extensions are in workflow/ext
 
-# Install conda env. To be completed later. For now, assume all installed in default conda env dir
-DEFAULT_CONDA_ENV_DIR=$(conda env list | grep checkm2 | awk '{print $2}' | sed 's|/checkm2||')
-echo "default conda env directory: $DEFAULT_CONDA_ENV_DIR"
-
-
 # Create test_data/parameters.yaml
-
 cat <<EOL > "$PARAMS_FILE"
 # Parameters config
 
 ext: '$EXT_PATH'
 conda_prefix: '$DEFAULT_CONDA_ENV_DIR'
+
 
 # --- checkm --- #
 checkm2_db: '$CHECKM2_DB'
@@ -240,11 +272,37 @@ min_contig_len: $MIN_CONTIG_LEN
 EOL
 
 echo "✅ Configuration file created at: $PARAMS_FILE"
-echo "📄 Contents of test_data/parameters.yaml:"
-cat "$PARAMS_FILE"
+ 
+# Create configs/parameters.yaml 
+PARAMS_FILE="$DEFAULT_PATH/configs/parameters.yaml"
+
+cat <<EOL > "$PARAMS_FILE"
+# Parameters config
+
+ext: '$EXT_PATH'
+conda_prefix: '$DEFAULT_CONDA_ENV_DIR'
+
+
+# --- checkm --- #
+checkm2_db: '$CHECKM2_DB'
+checkm1_db: '$CHECKM1_DB'
+
+# --- gunc --- #
+diamond_db: '$DIAMOND_DB'
+
+# --- gtdbtk --- #
+gtdb_db: '$GTDB_DB'
+
+# --- cmseq --- #
+minqual: $MINQUAL
+mincov: $MINCOV
+dominant_frq_thrsh: $DOMINANT_FRQ_THRSH
+
+# --- quast --- #
+min_contig_len: $MIN_CONTIG_LEN
+EOL
+
+echo "✅ Configuration file created at: $PARAMS_FILE"
 
 echo "🎯 Setup complete! You can now run:"
-echo "python $MAG_QC_WORK_DIR/workflow/mag_qc.py test"
- 
-
 
