@@ -10,18 +10,7 @@ import os
 import pandas as pd
 from snakemake import snakemake, main
 from shutil import rmtree
-from utils import Workflow_Dirs, print_cmds, cleanup_files
-
-### Maybe this is better put in utils. Putting here temporarily
-import yaml
-
-def get_conda_prefix(yaml_file):
-    """Load conda_prefix from parameters.yaml."""
-    with open(yaml_file, "r") as file:
-        config = yaml.safe_load(file)
-    return config.get("conda_prefix", "Not Found")  # Default value if key is missing
-
-
+from utils import Workflow_Dirs, print_cmds, cleanup_files, get_conda_prefix
 
 @click.group(cls = DefaultGroup, default = 'run', default_if_no_args = True)
 def cli():
