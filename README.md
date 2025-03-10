@@ -29,46 +29,34 @@ If you don't already have `conda` handy, we recommend installing `miniforge`, wh
 
 # Create and activate conda environment 
 cd camp_mag-qc
-conda env create -f configs/conda/mag_qc.yaml
+CONDA_CHANNEL_PRIORITY=flexible conda env create -f configs/conda/mag_qc.yaml
 conda activate mag-qc
 ```
 
-3. Download the database dependencies for GTDB-Tk.
-    - Note: `GTDBTK_DATA_PATH` has to be `export`-ed every time you open a new instance of the terminal 
+3. Setup
+This step installs databases needed for this module as well as sets the environments for running the module. This is done interactively by running `setup.sh`.
+
+The databases needed are: GTDB-Tk, CheckM2, CheckM, and gunc. 
+
+`setup.sh` also generates parameters.yaml based on user input paths for running this module.
+
+Note: `setup.sh` uses conda activate to switch environments. If you encounter issues where conda activate is not recognized, follow these steps to properly initialize Conda. If it has already been set up, jump straight to step 3.3.
+
+3.1 Run the following command to initialize Conda for your shell. This will configure your shell to recognize conda activate. 
 ```Bash
-export GTDBTK_DATA_PATH='/path/to/databases/metagenomics/GTDBTk_R202'
-wget https://data.gtdb.ecogenomic.org/releases/release202/202.0/auxillary_files/gtdbtk_r202_data.tar.gz -P ${GTDBTK_DATA_PATH}
-tar xzf ${GTDBTK_DATA_PATH}/gtdbtk_r202_data.tar.gz -C ${GTDBTK_DATA_PATH} --strip 1
+conda init
 ```
-
-4. Download the database dependencies for CheckM2. The easiest way to do this is to install the CheckM2 environment using `--dry_run` (see below for explanation) and then activating the CheckM2 conda environment to use its database download command.
+3.2 restart your terminal or run:
 ```Bash
-python /path/to/camp_mag-qc/workflow/mag_qc.py --dry_run \
-    -d /home/lam4003/bin/camp_mag-qc/test_out \
-    -s /home/lam4003/bin/camp_mag-qc/test_data/samples.csv
-
-# In the directory /path/to/camp_mag-qc/conda_envs/, find the environment ID that corresponds to CheckM2
-
-# Activate the conda environment that corresponds to CheckM2
-conda activate /path/to/camp_mag-qc/conda_envs/checkm2_env_id
-
-checkm2 database --download --path /path/to/databases
+source ~/.bashrc  # For bash users
+source ~/.zshrc   # For zsh users
 ```
-
-5. Download the database dependencies for CheckM1. 
-```
-wget https://data.ace.uq.edu.au/public/CheckM_databases/checkm_data_2015_01_16.tar.gz -P /path/to/databases
-tar xzf checkm_data_2015_01_16.tar.gz
-```
-
-5. Download the database dependencies for gunc. 
+3.3 Finally, run
 ```Bash
-gunc download_db /path/to/databases
+source setup.sh
 ```
 
-6. Update the parameters `ext` and the paths to the databases for GTDB-Tk, CheckM1/2, gunc, and DIAMOND in `test_data/parameters.yaml`.
-
-7. Make sure the installed pipeline works correctly. With 40 threads and a maximum of 250 GB allocated, the test dataset should finish in approximately 43 minutes. `pplacer`, a component of GTDB-Tk, requires a large amount of RAM to complete.
+4. Make sure the installed pipeline works correctly. With 40 threads and a maximum of 250 GB allocated, the test dataset should finish in approximately 43 minutes. `pplacer`, a component of GTDB-Tk, requires a large amount of RAM to complete.
 ```Bash
 # Run tests on the included sample dataset
 python /path/to/camp_mag-qc/workflow/mag_qc.py test
