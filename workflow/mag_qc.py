@@ -101,10 +101,11 @@ def run(cores, work_dir, samples, parameters, resources, slurm, dry_run, unlock,
     ryaml = resources if resources else os.path.join(main_dir, 'configs', 'resources.yaml')
 
     # Set up the conda environment directory
-    env_dir = os.path.join(main_dir, 'conda_envs')
-    if not os.path.exists(env_dir):
-        os.makedirs(env_dir)
+    #env_dir = os.path.join(main_dir, 'conda_envs')
+    #if not os.path.exists(env_dir):
+    #    os.makedirs(env_dir)
     env_yamls = os.path.join(main_dir, 'configs', 'conda')
+    env_dir = get_conda_prefix(pyaml)    
 
     # If generating unit tests, set the unit test directory (by default, is pytest's default, .tests)
     # unit_test_dir = os.path.join(main_dir, '.tests/unit') if unit_test else None
@@ -163,7 +164,6 @@ def test():
     #retrieve conda environment from parameters.yaml <-- Modified by WW
     env_dir = get_conda_prefix(pyaml)
     print(f"env_dir retrieved from parameters.yaml: {env_dir}")
-
 
     # Run workflow
     cmd_line(workflow, work_dir, samples, env_yamls, pyaml, ryaml,   \

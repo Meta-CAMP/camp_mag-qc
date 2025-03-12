@@ -1,31 +1,23 @@
-#'''Parameters config.'''#
+# Parameters config
 
-
-ext: '/home/lam4003/bin/camp_mag-qc/workflow/ext'
+ext:
+conda_prefix: 
 
 
 # --- checkm --- #
-
-checkm2_db: '/workdir/lam4003/Databases/CheckM2_05232023/uniref100.KO.1.dmnd'
-checkm1_db: '/workdir/lam4003/Databases/CheckM_2015_01_16_010123'
-
+checkm2_db: 
+checkm1_db: 
 
 # --- gunc --- #
-
-diamond_db: '/workdir/lam4003/Databases/GUNC_10072023/gunc_db_progenomes2.1.dmnd'
-
+diamond_db: 
 
 # --- gtdbtk --- #
-
-gtdb_db: '/workdir/lam4003/Databases/GTDBTk_R202_010123'
+gtdb_db:
 
 # --- cmseq --- #
-
-minqual:    30
-mincov:     10
-dominant_frq_thrsh:     0.8
-
+minqual: 30
+mincov: 10
+dominant_frq_thrsh: 0.8
 
 # --- quast --- #
-
-min_contig_len:   100
+min_contig_len: 100
