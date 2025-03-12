@@ -21,7 +21,6 @@ def get_conda_prefix(yaml_file):
     return config.get("conda_prefix", "Not Found")  # Default value if key is missing
 
 
-
 def extract_from_gzip(ap, out):
     if open(ap, 'rb').read(2) == b'\x1f\x8b': # If the input is gzipped
         with gzip.open(ap, 'rb') as f_in, open(out, 'wb') as f_out:
