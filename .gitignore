@@ -1,8 +1,20 @@
 
+# ./
 .ipynb_checkpoints/
-
 .DS_Store
-
 .idea/
+.snakemake/
 
+# Testing
+checkm2/
+test_out/
+mag_qc.out
+
+# workflow/
 workflow/.Rapp.history
+workflow/__pycache__/
+
+# test_data
+test_data/not_tested/
+test_data/samples.csv
+test_data/parameters.yaml

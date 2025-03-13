@@ -1,6 +1,6 @@
 # MAG QC
 
-[![Documentation Status](https://img.shields.io/badge/docs-passing-brightgreen.svg)](https://camp-documentation.readthedocs.io/en/latest/magqc.html) ![Version](https://img.shields.io/badge/version-0.13.0-brightgreen)
+[![Documentation Status](https://img.shields.io/badge/docs-passing-brightgreen.svg)](https://camp-documentation.readthedocs.io/en/latest/magqc.html) ![Version](https://img.shields.io/badge/version-0.14.0-brightgreen)
 
 <!-- [![Documentation Status](https://img.shields.io/readthedocs/camp-mag_qc)](https://camp-documentation.readthedocs.io/en/latest/mag_qc.html) -->
 
@@ -8,12 +8,33 @@
 
 This module is designed to function as both a standalone MAG QC pipeline as well as a component of the larger CAMP metagenome analysis pipeline. As such, it is both self-contained (ex. instructions included for the setup of a versioned environment, etc.), and seamlessly compatible with other CAMP modules (ex. ingests and spawns standardized input/output config files, etc.). 
 
-The CAMP MAG quality-checking pipeline wraps several tools (CheckM, gunc, GTDB-Tk, DNADiff, QUAST) to assess the overall quality of the MAG binning process. More quality metrics will be added as they are validated on simulated and real gold-standard datasets. 
+The CAMP MAG quality-checking pipeline wraps several tools (CheckM(2), gunc, GTDB-Tk, DNADiff, QUAST) to assess the overall quality of the MAG binning process. More quality metrics will be added as they are validated on simulated and real gold-standard datasets. 
 
 ## Installation
 
 > [!TIP]
 > All databases used in CAMP modules will also be available for download on Zenodo (link TBD).
+
+### Install `conda`
+
+If you don't already have `conda` handy, we recommend installing `miniforge`, which is a minimal conda installer that, by default, installs packages from open-source community-driven channels such as `conda-forge`.
+```Bash
+# If you don't already have conda on your system...
+wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+```
+
+Run the following command to initialize Conda for your shell. This will configure your shell to recognize conda activate. 
+```Bash
+conda init
+```
+
+Restart your terminal or run:
+```Bash
+source ~/.bashrc  # For bash users
+source ~/.zshrc   # For zsh users
+```
+
+### Setting up the MAG QC Module
 
 1. Clone repo from [Github](<https://github.com/MetaSUB-CAMP/camp_mag-qc>).
 ```Bash
@@ -22,41 +43,24 @@ git clone https://github.com/MetaSUB-CAMP/camp_mag-qc
 
 2. Set up the conda environment using `configs/conda/mag-qc.yaml`. 
 
-If you don't already have `conda` handy, we recommend installing `miniforge`, which is a minimal conda installer that, by default, installs packages from open-source community-driven channels such as `conda-forge`.
 ```Bash
-# If you don't already have conda on your system...
-# wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
-
 # Create and activate conda environment 
 cd camp_mag-qc
 CONDA_CHANNEL_PRIORITY=flexible conda env create -f configs/conda/mag_qc.yaml
-conda activate mag-qc
+conda activate mag_qc
 ```
 
-3. Setup
-This step installs databases needed for this module as well as sets the environments for running the module. This is done interactively by running `setup.sh`.
-
-The databases needed are: GTDB-Tk, CheckM2, CheckM, and gunc. 
-
-`setup.sh` also generates parameters.yaml based on user input paths for running this module.
-
-Note: `setup.sh` uses conda activate to switch environments. If you encounter issues where conda activate is not recognized, follow these steps to properly initialize Conda. If it has already been set up, jump straight to step 3.3.
-
-3.1 Run the following command to initialize Conda for your shell. This will configure your shell to recognize conda activate. 
-```Bash
-conda init
-```
-3.2 restart your terminal or run:
-```Bash
-source ~/.bashrc  # For bash users
-source ~/.zshrc   # For zsh users
-```
-3.3 Finally, run
+3. Set up the rest of the module interactively by running `setup.sh`. This step downloads the databases (GTDB-Tk, CheckM2, CheckM, and gunc) and installs the other conda environments needed for running the module. This is done interactively by running `setup.sh`. `setup.sh` also generates `parameters.yaml` based on user input paths for running this module.
 ```Bash
 source setup.sh
+
+# If you encounter issues where conda activate is not recognized, follow these steps to properly initialize Conda
+
+conda init
+source ~/.bashrc # or source ~/.zshrc
 ```
 
-4. Make sure the installed pipeline works correctly. With 40 threads and a maximum of 250 GB allocated, the test dataset should finish in approximately 43 minutes. `pplacer`, a component of GTDB-Tk, requires a large amount of RAM to complete.
+4. Make sure the installed pipeline works correctly. With 40 threads and a maximum of 250 GB allocated, the test dataset should finish in approximately 43 minutes. 
 ```Bash
 # Run tests on the included sample dataset
 python /path/to/camp_mag-qc/workflow/mag_qc.py test

@@ -12,12 +12,9 @@ checkm1_db:
 diamond_db: 
 
 # --- gtdbtk --- #
-gtdb_db:
 
-# --- cmseq --- #
-minqual: 30
-mincov: 10
-dominant_frq_thrsh: 0.8
+gtdb_db: '/workdir/lam4003/Databases/GTDBTk_R202_010123'
+
 
 # --- quast --- #
 min_contig_len: 100

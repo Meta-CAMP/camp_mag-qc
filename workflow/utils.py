@@ -47,8 +47,8 @@ def ingest_samples(samples, tmp):
             makedirs(join(tmp, s[i]))
             with open(join(tmp, s[i] + '.out'), 'w') as f_out: # Enables the CheckM rule to run
                 bin_lst = glob.glob(l[0] + '/*.fa*')
-                if 'bin.unbinned.fa' in bin_lst:
-                    bin_lst.remove('bin.unbinned.fa')
+                if l[0] + '/bin.unbinned.fa' in bin_lst:
+                    bin_lst.remove(l[0] + '/bin.unbinned.fa')
                 camp_format = check_format(bin_lst)
                 for j,m in enumerate(bin_lst):
                     prefix = basename(m).split('.')[1] if camp_format else 'bin.{}'.format(j)

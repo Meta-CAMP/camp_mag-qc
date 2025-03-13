@@ -56,10 +56,10 @@ while true; do
         [Yy]* )
             # Check if the conda environment exists
             if conda env list | grep -q "checkm2"; then
-                DEFAULT_CONDA_ENV_DIR=$(conda env list | grep checkm2 | awk '{print $2}' | sed 's|/checkm2||')
+                DEFAULT_CONDA_ENV_DIR=$(conda env list | grep checkm2 | awk '{print $NF}' | sed 's|/checkm2||')
                 echo "✅ CheckM2 environment found at: $DEFAULT_CONDA_ENV_DIR"
                 
-                read -p "📂 Enter the full path to existing CheckM2 database: " CHECKM2_DB_PATH
+                read -p "📂 Enter the full path to existing CheckM2 database (eg. /path/to/checkm2_db/uniref100.KO.1.dmnd): " CHECKM2_DB_PATH
                 DATABASE_PATHS["CHECKM2_PATH"]="$CHECKM2_DB_PATH"
                 echo "✅ CheckM2 database path set to: $(realpath "${CHECKM2_DB_PATH}")"
                 break
@@ -96,7 +96,7 @@ while true; do
             echo "✅ CheckM2 successfully installed!"
 
             # Get default Conda environment directory
-            DEFAULT_CONDA_ENV_DIR=$(conda env list | grep checkm2 | awk '{print $2}' | sed 's|/checkm2||')
+            DEFAULT_CONDA_ENV_DIR=$(conda env list | grep checkm2 | awk '{print $NF}' | sed 's|/checkm2||')
             echo "📍 Default Conda environment directory: $DEFAULT_CONDA_ENV_DIR"
 
             # Download CheckM2 database
@@ -155,6 +155,7 @@ install_database() {
 ask_database() {
     local DB_NAME="$1"
     local DB_VAR_NAME="$2"
+    local DB_HINT="$3"
     local DB_PATH=""
 
     echo "🛠️  Checking for $DB_NAME database..."
@@ -164,7 +165,7 @@ ask_database() {
         case "$RESPONSE" in
             [Yy]* )
                 while true; do
-                    read -p "📂 Enter the path to your existing $DB_NAME database: " DB_PATH
+                    read -p "📂 Enter the path to your existing $DB_NAME database (eg. $DB_HINT): " DB_PATH
                     if [[ -d "$DB_PATH" || -f "$DB_PATH" ]]; then
                         DATABASE_PATHS[$DB_VAR_NAME]="$DB_PATH"
                         echo "✅ $DB_NAME path set to: $DB_PATH"
@@ -192,9 +193,9 @@ ask_database() {
 }
 
 # Ask for all required databases
-ask_database "GTDB-Tk" "GTDBTK_PATH"
-ask_database "CheckM" "CHECKM_PATH"
-ask_database "GUNC" "GUNC_PATH"
+ask_database "GTDB-Tk" "GTDBTK_PATH" "/path/to/gtdbtk_db/"
+ask_database "CheckM" "CHECKM_PATH" "/path/to/checkm_db/"
+ask_database "GUNC" "GUNC_PATH" "/path/to/gunc_db/gunc_db_progenomes2.1.dmnd"
 
 echo "✅ Setup complete!"
 
@@ -224,18 +225,16 @@ else
 fi
 
 
-# --- Generate test_data/parameters.yaml ---
+# --- Generate parameter configs ---
 
-# Set the path for the new parameters.yaml
+# Create test_data/parameters.yaml
 PARAMS_FILE="$DEFAULT_PATH/test_data/parameters.yaml" 
 
 echo "🚀 Generating test_data/parameters.yaml in $PARAMS_FILE ..."
 
 # Default values for analysis parameters
-MINQUAL=30
-MINCOV=10
-DOMINANT_FRQ_THRSH=0.8
-MIN_CONTIG_LEN=100
+TEST_MIN_CONTIG_LEN=100
+REAL_MIN_CONTIG_LEN=1000
 
 # Use existing paths from DATABASE_PATHS
 CHECKM2_DB="${DATABASE_PATHS[CHECKM2_PATH]}"
@@ -262,13 +261,8 @@ diamond_db: '$DIAMOND_DB'
 # --- gtdbtk --- #
 gtdb_db: '$GTDB_DB'
 
-# --- cmseq --- #
-minqual: $MINQUAL
-mincov: $MINCOV
-dominant_frq_thrsh: $DOMINANT_FRQ_THRSH
-
 # --- quast --- #
-min_contig_len: $MIN_CONTIG_LEN
+min_contig_len: $TEST_MIN_CONTIG_LEN
 EOL
 
 echo "✅ Configuration file created at: $PARAMS_FILE"
@@ -293,16 +287,26 @@ diamond_db: '$DIAMOND_DB'
 # --- gtdbtk --- #
 gtdb_db: '$GTDB_DB'
 
-# --- cmseq --- #
-minqual: $MINQUAL
-mincov: $MINCOV
-dominant_frq_thrsh: $DOMINANT_FRQ_THRSH
-
 # --- quast --- #
-min_contig_len: $MIN_CONTIG_LEN
+min_contig_len: $REAL_MIN_CONTIG_LEN
 EOL
 
 echo "✅ Configuration file created at: $PARAMS_FILE"
 
-echo "🎯 Setup complete! You can now run:"
+# --- Generate test data input CSV ---
+
+# Create test_data/samples.csv
+INPUT_CSV="$DEFAULT_PATH/test_data/samples.csv" 
+MAG_QC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "🚀 Generating test_data/samples.csv in $INPUT_CSV ..."
+
+cat <<EOL > "$INPUT_CSV"
+sample_name,mag_dir,bam
+uhgg,$MAG_QC_DIR/test_data/uhgg,$MAG_QC_DIR/test_data/uhgg.sort.bam
+EOL
+
+echo "✅ Test data input CSV created at: $INPUT_CSV"
+
+echo "🎯 Setup complete! You can now test the workflow using `python workflow/mag_qc.py test`"
 
