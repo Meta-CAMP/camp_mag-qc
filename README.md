@@ -1,6 +1,6 @@
 # MAG QC
 
-[![Documentation Status](https://img.shields.io/badge/docs-passing-brightgreen.svg)](https://camp-documentation.readthedocs.io/en/latest/magqc.html) ![Version](https://img.shields.io/badge/version-0.14.0-brightgreen)
+[![Documentation Status](https://img.shields.io/badge/docs-passing-brightgreen.svg)](https://camp-documentation.readthedocs.io/en/latest/magqc.html) ![Version](https://img.shields.io/badge/version-0.14.1-brightgreen)
 
 <!-- [![Documentation Status](https://img.shields.io/readthedocs/camp-mag_qc)](https://camp-documentation.readthedocs.io/en/latest/mag_qc.html) -->
 
@@ -36,9 +36,9 @@ source ~/.zshrc   # For zsh users
 
 ### Setting up the MAG QC Module
 
-1. Clone repo from [Github](<https://github.com/MetaSUB-CAMP/camp_mag-qc>).
+1. Clone repo from [Github](<https://github.com/Meta-CAMP/camp_mag-qc>).
 ```Bash
-git clone https://github.com/MetaSUB-CAMP/camp_mag-qc
+git clone https://github.com/Meta-CAMP/camp_mag-qc
 ```
 
 2. Set up the conda environment using `configs/conda/mag-qc.yaml`. 
@@ -55,7 +55,6 @@ conda activate mag_qc
 source setup.sh
 
 # If you encounter issues where conda activate is not recognized, follow these steps to properly initialize Conda
-
 conda init
 source ~/.bashrc # or source ~/.zshrc
 ```

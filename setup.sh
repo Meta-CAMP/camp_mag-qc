@@ -16,17 +16,17 @@ show_welcome() {
     echo "|_| |_|\___|_|_|\___/   \____/_/   \_\_|  |_|_|   \___|_|  (_)"
     sleep 0.5
 
-echo ""
-echo "🌲🏕️  WELCOME TO CAMP SETUP! 🏕️🌲"
-echo "===================================================="
-echo ""
-echo "   🏕️  Configuring Databases & Conda Environments"
-echo "       for CAMP MAG QC"
-echo ""
-echo "   🔥 Let's get everything set up properly!"
-echo ""
-echo "===================================================="
-echo ""
+    echo ""
+    echo "🌲🏕️  WELCOME TO CAMP SETUP! 🏕️🌲"
+    echo "===================================================="
+    echo ""
+    echo "   🏕️  Configuring Databases & Conda Environments"
+    echo "       for CAMP MAG QC"
+    echo ""
+    echo "   🔥 Let's get everything set up properly!"
+    echo ""
+    echo "===================================================="
+    echo ""
 
 }
 
@@ -127,20 +127,19 @@ install_database() {
         "GTDBTK_PATH")
             wget -c https://data.ace.uq.edu.au/public/gtdb/data/releases/release220/220.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r220_data.tar.gz -P $INSTALL_DIR
             mkdir -p $FINAL_DB_PATH
-	    tar -xzf "$INSTALL_DIR/gtdbtk_r220_data.tar.gz" -C "$FINAL_DB_PATH"
+	        tar -xzf "$INSTALL_DIR/gtdbtk_r220_data.tar.gz" -C "$FINAL_DB_PATH"
             #rm "$INSTALL_DIR/gtdbtk_r202_data.tar.gz"
             echo "✅ GTDB-Tk database installed successfully!"
             ;;
         "CHECKM_PATH")
             wget https://data.ace.uq.edu.au/public/CheckM_databases/checkm_data_2015_01_16.tar.gz -P $INSTALL_DIR
-	    mkdir -p $FINAL_DB_PATH
+	        mkdir -p $FINAL_DB_PATH
             tar -xzf "$INSTALL_DIR/checkm_data_2015_01_16.tar.gz" -C "$FINAL_DB_PATH"
             #rm "$INSTALL_DIR/checkm_data_2015_01_16.tar.gz"
             echo "✅ CheckM1 database installed successfully!"
             ;;
         "GUNC_PATH")
             gunc download_db $INSTALL_DIR
-	    
             echo "✅ GUNC database installed successfully!"
             ;;
         *)
@@ -203,7 +202,7 @@ echo "✅ Setup complete!"
 # Install conda env: quast, prokka. 
 cd $DEFAULT_PATH #camp_mag_qc
 check_conda_env() {
-    conda env list | awk '{print $2}' | grep -qx "$DEFAULT_CONDA_ENV_DIR/$1"
+    conda env list | awk '{print $NF}' | grep -qx "$DEFAULT_CONDA_ENV_DIR/$1"
 }
 
 # Check for Prokka environment
