@@ -50,7 +50,7 @@ CONDA_CHANNEL_PRIORITY=flexible conda env create -f configs/conda/mag_qc.yaml
 conda activate mag_qc
 ```
 
-3. Set up the rest of the module interactively by running `setup.sh`. This step downloads the databases (GTDB-Tk, CheckM2, CheckM, and gunc) and installs the other conda environments needed for running the module. This is done interactively by running `setup.sh`. `setup.sh` also generates `parameters.yaml` based on user input paths for running this module.
+3. Set up the rest of the module interactively by running `setup.sh`. This step downloads the databases (GTDB-Tk, CheckM2, CheckM, and gunc) and installs the other conda environments needed for running the module.`setup.sh` also generates `parameters.yaml` based on user input paths for running this module.
 ```Bash
 source setup.sh
 
