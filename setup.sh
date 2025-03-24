@@ -307,5 +307,5 @@ EOL
 
 echo "✅ Test data input CSV created at: $INPUT_CSV"
 
-echo "🎯 Setup complete! You can now test the workflow using `python workflow/mag_qc.py test`"
+echo "🎯 Setup complete! You can now test the workflow using \`python workflow/mag_qc.py test\`"
 

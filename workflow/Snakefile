@@ -278,7 +278,7 @@ rule quast:
         min_len = config['min_contig_len'],
     shell:
         """
-        quast.py --threads {threads} -r {input.ref} -m {params.min_len} -o {params.out_dir} {input.fa} --no-plots -silent || touch {output}
+        quast.py --threads {threads} -r {input.ref} -m {params.min_len} -o {params.out_dir} {input.fa} --no-plots --silent || touch {output}
         """
 
 
