@@ -70,6 +70,8 @@ rule checkm_sh:
         os.path.join(dirs.OUT, '1_checkm1', 'strain_het', '{sample}', 'report.tsv'),
     log:
         os.path.join(dirs.LOG, 'checkm', '{sample}.strain_het.out'), 
+    conda:
+        'checkm',
     threads: config['checkm_threads'],
     resources:
         mem_mb = config['checkm_mem_mb'],
@@ -108,6 +110,8 @@ rule checkm_cov:
         os.path.join(dirs.OUT, '1_checkm1', 'mag_ra', '{sample}', 'report_raw.tsv'),
     log:
         os.path.join(dirs.LOG, 'checkm', '{sample}.mag_ra.out'), 
+    conda:
+        'checkm',
     threads: config['checkm_threads'],
     resources:
         mem_mb = config['checkm_mem_mb'],
@@ -144,6 +148,8 @@ rule gunc:
         os.path.join(dirs.OUT, '2_gunc', '{sample}', 'GUNC.progenomes_2.1.maxCSS_level.tsv'),
     log:
         os.path.join(dirs.LOG, 'gunc', '{sample}.out'),
+    conda:
+        'gunc',
     threads: config['gunc_threads'],
     resources:
         mem_mb = config['gunc_mem_mb'],
@@ -165,6 +171,8 @@ rule gtdbtk:
         os.path.join(dirs.OUT, '3_gtdbtk', '{sample}', 'report.tsv'),
     log:
         os.path.join(dirs.LOG, 'gtdbtk', '{sample}.out'),
+    conda:
+        'gtdbtk',
     threads: config['gtdbtk_threads'],
     resources:
         mem_mb = config['gtdbtk_mem_mb'],
@@ -212,6 +220,8 @@ rule dnadiff:
         rep = os.path.join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}' + '.report'),
     log:
         os.path.join(dirs.LOG, 'dnadiff', '{sample}.{bin_num}.out'), 
+    conda:
+        'dnadiff'
     params:
         prefix = os.path.join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}'),
         ref = os.path.join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}.ref'),
@@ -278,7 +288,12 @@ rule quast:
         min_len = config['min_contig_len'],
     shell:
         """
-        quast.py --threads {threads} -r {input.ref} -m {params.min_len} -o {params.out_dir} {input.fa} --no-plots --silent || touch {output}
+        if [[ -s {input.ref} ]]; then
+            quast.py --threads {threads} -r {input.ref} -m {params.min_len} -o {params.out_dir} {input.fa} --no-plots
+        else
+            echo "MAG was not classified at the species level."
+            touch {output}
+        fi
         """
 
 
@@ -302,11 +317,11 @@ rule ctg_name_edit:
     shell:
         """
         mkdir -p {params.out_dir}
-        if awk '/^>/ {{ if(length($0) > 38) exit 1 }}' {input}; then
-            awk '/^>/ {{ if(length($0) > 38) print substr($0, 1, 38); \
-            else print }} !/^>/ {{ print }}' {input} > {output}
-        else
+        if awk '/^>/ {{ if(length($0) > 37) exit 1 }}' {input}; then
             ln -s {input} {output}
+        else
+            awk '/^>/ {{ if(length($0) > 37) print substr($0, 1, 37); \
+            else print }} !/^>/ {{ print }}' {input} > {output}
         fi
         """
 

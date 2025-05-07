@@ -1,6 +1,6 @@
 # MAG QC
 
-[![Documentation Status](https://img.shields.io/badge/docs-passing-brightgreen.svg)](https://camp-documentation.readthedocs.io/en/latest/magqc.html) ![Version](https://img.shields.io/badge/version-0.15.0-brightgreen)
+[![Documentation Status](https://img.shields.io/badge/docs-passing-brightgreen.svg)](https://camp-documentation.readthedocs.io/en/latest/magqc.html) ![Version](https://img.shields.io/badge/version-0.16.0-brightgreen)
 
 <!-- [![Documentation Status](https://img.shields.io/readthedocs/camp-mag_qc)](https://camp-documentation.readthedocs.io/en/latest/mag_qc.html) -->
 
@@ -41,16 +41,7 @@ source ~/.zshrc   # For zsh users
 git clone https://github.com/Meta-CAMP/camp_mag-qc
 ```
 
-2. Set up the conda environment using `configs/conda/mag-qc.yaml`. 
-
-```Bash
-# Create and activate conda environment 
-cd camp_mag-qc
-CONDA_CHANNEL_PRIORITY=flexible conda env create -f configs/conda/mag_qc.yaml
-conda activate mag_qc
-```
-
-3. Set up the rest of the module interactively by running `setup.sh`. This step downloads the databases (GTDB-Tk, CheckM2, CheckM, and gunc) and installs the other conda environments needed for running the module.`setup.sh` also generates `parameters.yaml` based on user input paths for running this module.
+2.  Set up the rest of the module interactively by running `setup.sh`. This step downloads the databases (GTDB-Tk, CheckM2, CheckM, and gunc) and installs the other conda environments needed for running the module.`setup.sh` also generates `parameters.yaml` based on user input paths for running this module.
 ```Bash
 source setup.sh
 
@@ -62,6 +53,7 @@ source ~/.bashrc # or source ~/.zshrc
 4. Make sure the installed pipeline works correctly. With 40 threads and a maximum of 250 GB allocated, the test dataset should finish in approximately 43 minutes. 
 ```Bash
 # Run tests on the included sample dataset
+conda activate camp
 python /path/to/camp_mag-qc/workflow/mag_qc.py test
 ```
 
@@ -110,6 +102,7 @@ To run CAMP on the command line, use the following, where `/path/to/work/dir` is
     - Relative or absolute paths to the Snakefile and/or the working directory (if you're running elsewhere) are accepted!
     - The parameters and resource config YAMLs can also be customized.
 ```Bash
+conda activate camp
 python /path/to/camp_mag-qc/workflow/mag_qc.py \
     (-c number_of_cores_allocated) \
     (-p /path/to/parameters.yaml) \
@@ -124,6 +117,7 @@ To run CAMP on a job submission cluster (for now, only Slurm is supported), use 
     - `--slurm` is an optional flag that submits all rules in the Snakemake pipeline as `sbatch` jobs. 
     - In Slurm mode, the `-c` flag refers to the maximum number of `sbatch` jobs submitted in parallel, **not** the pool of cores available to run the jobs. Each job will request the number of cores specified by threads in `configs/resources/slurm.yaml`.
 ```Bash
+conda activate camp
 sbatch -J jobname -o jobname.log << "EOF"
 #!/bin/bash
 python /path/to/camp_mag-qc/workflow/mag_qc.py --slurm \
@@ -137,10 +131,8 @@ EOF
 
 #### Finishing Up
 
-1. To plot all of the metrics extracted above, set up the dataviz environment and follow the instructions in the Jupyter notebook:
+1. To plot all of the metrics extracted above, follow the instructions in the Jupyter notebook:
 ```Bash
-conda env create -f configs/conda/dataviz.yaml
-conda activate dataviz
 jupyter notebook &
 ```
 
