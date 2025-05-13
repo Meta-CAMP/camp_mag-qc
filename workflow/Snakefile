@@ -71,7 +71,7 @@ rule checkm_sh:
     log:
         os.path.join(dirs.LOG, 'checkm', '{sample}.strain_het.out'), 
     conda:
-        'checkm',
+        'checkm-genome',
     threads: config['checkm_threads'],
     resources:
         mem_mb = config['checkm_mem_mb'],
@@ -111,7 +111,7 @@ rule checkm_cov:
     log:
         os.path.join(dirs.LOG, 'checkm', '{sample}.mag_ra.out'), 
     conda:
-        'checkm',
+        'checkm-genome',
     threads: config['checkm_threads'],
     resources:
         mem_mb = config['checkm_mem_mb'],
@@ -221,7 +221,7 @@ rule dnadiff:
     log:
         os.path.join(dirs.LOG, 'dnadiff', '{sample}.{bin_num}.out'), 
     conda:
-        'dnadiff'
+        'mummer'
     params:
         prefix = os.path.join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}'),
         ref = os.path.join(dirs.OUT, '4_dnadiff', '{sample}', '{bin_num}.ref'),

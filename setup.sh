@@ -38,7 +38,7 @@ find_install_camp_env() {
         echo "✅ The main CAMP environment is already installed in $DEFAULT_CONDA_ENV_DIR."
     else
         echo "🚀 Installing the main CAMP environment in $DEFAULT_CONDA_ENV_DIR/..."
-        conda create --prefix "$DEFAULT_CONDA_ENV_DIR/camp" -c conda-forge -c bioconda biopython blast bowtie2 bumpversion click click-default-group cookiecutter jupyter matplotlib numpy pandas samtools scikit-learn scipy seaborn snakemake umap-learn upsetplot
+        conda create --prefix "$DEFAULT_CONDA_ENV_DIR/camp" -c conda-forge -c bioconda biopython blast bowtie2 bumpversion click click-default-group cookiecutter jupyter matplotlib numpy pandas samtools scikit-learn scipy seaborn snakemake=7.32.4 umap-learn upsetplot
         echo "✅ The main CAMP environment has been installed successfully!"
     fi
 }
@@ -49,8 +49,18 @@ find_install_conda_env() {
         echo "✅ The $1 environment is already installed in $DEFAULT_CONDA_ENV_DIR."
     else
         echo "🚀 Installing $1 in $DEFAULT_CONDA_ENV_DIR/$1..."
-        conda create --prefix $DEFAULT_CONDA_ENV_DIR/$1 -c conda-forge -c bioconda $1
+        if [ $1 = 'checkm2' ]; then
+            conda create -n checkm2 -c conda-forge -c bioconda python=3.8 checkm2 # CheckM2 requires a specific Python version
+        else
+            conda create --prefix $DEFAULT_CONDA_ENV_DIR/$1 -c conda-forge -c bioconda $1
+        fi
+        if [ $1 = 'gunc' ]; then
+            conda activate gunc
+            conda install -c conda-forge setuptools
+            conda deactivate
+        fi
         echo "✅ $1 installed successfully!"
+    fi
 }
 
 # Ask user if each database is already installed or needs to be installed
@@ -62,7 +72,7 @@ ask_database() {
     echo "🛠️  Checking for $DB_NAME database..."
 
     while true; do
-        read -p "❓ Do you already have $DB_NAME installed? (y/n): " RESPONSE
+        read -p "❓ Do you already have the $DB_NAME database installed? (y/n): " RESPONSE
         case "$RESPONSE" in
             [Yy]* )
                 while true; do
@@ -75,22 +85,19 @@ ask_database() {
                         echo "⚠️ The provided path does not exist or is empty. Please check and try again."
                         read -p "Do you want to re-enter the path (r) or install $DB_NAME instead (i)? (r/i): " RETRY
                         if [[ "$RETRY" == "i" ]]; then
-                            break  # Exit inner loop to start installation
+                            break  # Exit outer loop to start installation
                         fi
                     fi
                 done
-                if [[ "$RETRY" == "i" ]]; then
-                    break  # Exit outer loop to install the database
-                fi
                 ;;
             [Nn]* )
-                read -p "📂 Enter the directory where you want to install $DB_NAME: " DB_PATH
-                install_database "$DB_NAME" "$DB_VAR_NAME" "$DB_PATH"
-                return  # Exit function after installation
-                ;;
+                break # Exit outer loop to start installation
+                ;; 
             * ) echo "⚠️ Please enter 'y(es)' or 'n(o)'.";;
         esac
     done
+    read -p "📂 Enter the directory where you want to install $DB_NAME: " DB_PATH
+    install_database "$DB_NAME" "$DB_VAR_NAME" "$DB_PATH"
 }
 
 # Install databases in the specified directory
@@ -115,16 +122,19 @@ install_database() {
             checkm2 database --download --path "$FINAL_DB_PATH"
             conda deactivate
             echo "✅ CheckM2 database downloaded successfully!"
-
+            ;;
         "CHECKM_PATH")
-            wget https://data.ace.uq.edu.au/public/CheckM_databases/checkm_data_2015_01_16.tar.gz -P $INSTALL_DIR
-	        mkdir -p $FINAL_DB_PATH
-            tar -xzf "$INSTALL_DIR/checkm_data_2015_01_16.tar.gz" -C "$FINAL_DB_PATH"
-            #rm "$INSTALL_DIR/checkm_data_2015_01_16.tar.gz"
+            local ARCHIVE="checkm_data_2015_01_16.tar.gz"
+            local DB_URL="https://data.ace.uq.edu.au/public/CheckM_databases/$ARCHIVE"
+            # wget -c $DB_URL -P $INSTALL_DIR
+            mkdir -p "$FINAL_DB_PATH"
+	        tar -xzf "$INSTALL_DIR/$ARCHIVE" -C "$FINAL_DB_PATH"
             echo "✅ CheckM1 database installed successfully!"
             ;;
         "GUNC_PATH")
+            conda activate gunc
             gunc download_db $INSTALL_DIR
+            conda deactivate
             echo "✅ GUNC database installed successfully!"
             ;;
         *)
@@ -158,7 +168,7 @@ DEFAULT_CONDA_ENV_DIR=$(conda info --base)/envs
 find_install_camp_env
 
 # ...auxiliary environments
-MODULE_PKGS=('checkm2' 'checkm' 'gunc' 'gtdbtk' 'dnadiff', 'quast' 'prokka') # Add any additional conda packages here
+MODULE_PKGS=('checkm2' 'checkm-genome' 'gunc' 'gtdbtk' 'mummer' 'quast' 'prokka') # Add any additional conda packages here
 for m in "${MODULE_PKGS[@]}"; do
     find_install_conda_env "$m"
 done

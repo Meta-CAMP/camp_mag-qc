@@ -18,3 +18,4 @@ workflow/__pycache__/
 test_data/not_tested/
 test_data/samples.csv
 test_data/parameters.yaml
+.dmanifest

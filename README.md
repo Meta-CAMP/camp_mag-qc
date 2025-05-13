@@ -1,7 +1,8 @@
 # MAG QC
 
-[![Documentation Status](https://img.shields.io/badge/docs-passing-brightgreen.svg)](https://camp-documentation.readthedocs.io/en/latest/magqc.html) ![Version](https://img.shields.io/badge/version-0.16.0-brightgreen)
+![Version](https://img.shields.io/badge/version-0.17.0-brightgreen)
 
+<!-- [![Documentation Status](https://img.shields.io/badge/docs-passing-brightgreen.svg)](https://camp-documentation.readthedocs.io/en/latest/magqc.html) -->
 <!-- [![Documentation Status](https://img.shields.io/readthedocs/camp-mag_qc)](https://camp-documentation.readthedocs.io/en/latest/mag_qc.html) -->
 
 ## Overview
@@ -43,6 +44,7 @@ git clone https://github.com/Meta-CAMP/camp_mag-qc
 
 2.  Set up the rest of the module interactively by running `setup.sh`. This step downloads the databases (GTDB-Tk, CheckM2, CheckM, and gunc) and installs the other conda environments needed for running the module.`setup.sh` also generates `parameters.yaml` based on user input paths for running this module.
 ```Bash
+cd camp_mag-qc/
 source setup.sh
 
 # If you encounter issues where conda activate is not recognized, follow these steps to properly initialize Conda
