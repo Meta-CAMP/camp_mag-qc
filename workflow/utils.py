@@ -146,11 +146,11 @@ def get_bin_nums(s, d):
 
 
 def pair_mag_refs(row, out_dir, gtdb_db):
-    r = row['fastani_reference']
+    r = row['closest_genome_reference']
     r_path = 'None'
     if str(r) != 'nan':
         parts = r.split('_')
-        r_path = join(gtdb_db, 'fastani/database', parts[0], parts[1][0:3], parts[1][3:6], parts[1][6:9], r + '_genomic.fna.gz')
+        r_path = join(gtdb_db, 'skani/database', parts[0], parts[1][0:3], parts[1][3:6], parts[1][6:9], r + '_genomic.fna.gz')
     with open(join(out_dir, str(row['user_genome']) + '.ref'), 'w') as f_out:
         f_out.write(r_path + '\n')
 

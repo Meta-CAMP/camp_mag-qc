@@ -31,6 +31,7 @@ def main(args): # A FastA file
     # Load MAG tRNA and rRNA gene content
     gene_cts_df = pd.read_csv(args.gene_cts, header = None)
     gene_cts_df.columns = ['mag', 'num_cds', 'num_trna', 'num_rrna_total', 'num_rrna_5s', 'num_rrna_16s', 'num_rrna_23s']
+    gene_cts_df['mag'] = gene_cts_df['mag'].astype(str)  # Otherwise, interpreted as int
     # gene_cts_df['mag'] = gene_cts_df.apply(lambda row : str(row[0]).split('.')[1], axis = 1) # Reshape bin.X into X
     # Load classification results
     if getsize(args.gtdb) != 0: # If there were classification results
@@ -68,7 +69,7 @@ def main(args): # A FastA file
         ((summ_df['completeness'] > 90) & (summ_df['contamination'] <= 5)),
         ((summ_df['completeness'] > 90) & (summ_df['contamination'] < 5) & (summ_df['num_trna'] >= 18) & (summ_df['num_rrna_5s'] > 0) & (summ_df['num_rrna_16s'] > 0) & (summ_df['num_rrna_23s'] > 0)),
     ]
-    summ_df['MIMAG_Quality'] = np.select(conditions, ['Low', 'Low', 'Medium', 'Medium', 'High', 'Near_Complete'], default = np.nan)
+    summ_df['MIMAG_Quality'] = np.select(conditions, ['Low', 'Low', 'Medium', 'Medium', 'High', 'Near_Complete'], default = 'NA')
     summ_df['GUNC_Status'] = np.where((summ_df['clade_separation_score'] < 0.45), 'Pass', 'Fail')
     # Defaults are A = 1, B = 0.5, C = 5, D = 1
     summ_df['Overall_Score'] = summ_df.apply(lambda row : row[1] + 0.5 * log10(row[3]) - 5 * row[2], axis = 1)

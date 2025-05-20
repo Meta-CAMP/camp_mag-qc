@@ -111,9 +111,9 @@ install_database() {
 
     case "$DB_VAR_NAME" in
         "GTDBTK_PATH")
-            wget -c https://data.ace.uq.edu.au/public/gtdb/data/releases/release220/220.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r220_data.tar.gz -P $INSTALL_DIR
-            mkdir -p $FINAL_DB_PATH
-	        tar -xzf "$INSTALL_DIR/gtdbtk_r220_data.tar.gz" -C "$FINAL_DB_PATH"
+            wget -c wget https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/auxillary_files/gtdbtk_package/full_package/gtdbtk_data.tar.gz -P $INSTALL_DIR
+	        tar -xzf "$INSTALL_DIR/gtdbtk_r220_data.tar.gz" 
+            mv $INSTALL_DIR/release226 $FINAL_DB_PATH
             #rm "$INSTALL_DIR/gtdbtk_r202_data.tar.gz"
             echo "✅ GTDB-Tk database installed successfully!"
             ;;
@@ -177,7 +177,7 @@ done
 
 # Define variables to store user responses
 declare -A DB_SUBDIRS=(
-    ["GTDBTK_PATH"]="GTDBTk_R220"
+    ["GTDBTK_PATH"]="gtdbtk_dbs"
     ["CHECKM2_PATH"]="CheckM2_database/uniref100.KO.1.dmnd"
     ["CHECKM_PATH"]="checkm_data_2015_01_16"
     ["GUNC_PATH"]="gunc_db_progenomes2.1.dmnd"

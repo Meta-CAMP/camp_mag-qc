@@ -1,21 +1,18 @@
 # Parameters config
 
-ext:
-conda_prefix: 
+ext: ''
+conda_prefix: ''
 
 
 # --- checkm --- #
-checkm2_db: 
-checkm1_db: 
+checkm2_db: ''
+checkm1_db: ''
 
 # --- gunc --- #
-diamond_db:
+diamond_db: ''
 
 # --- gtdbtk --- #
-
 gtdb_db: ''
 
-
 # --- quast --- #
-
-min_contig_len:   1000
+min_contig_len: 1000

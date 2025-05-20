@@ -1,6 +1,6 @@
 # MAG QC
 
-![Version](https://img.shields.io/badge/version-0.17.0-brightgreen)
+![Version](https://img.shields.io/badge/version-0.18.0-brightgreen)
 
 <!-- [![Documentation Status](https://img.shields.io/badge/docs-passing-brightgreen.svg)](https://camp-documentation.readthedocs.io/en/latest/magqc.html) -->
 <!-- [![Documentation Status](https://img.shields.io/readthedocs/camp-mag_qc)](https://camp-documentation.readthedocs.io/en/latest/mag_qc.html) -->
