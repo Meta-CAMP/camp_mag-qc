@@ -1,6 +1,6 @@
 # MAG QC
 
-![Version](https://img.shields.io/badge/version-0.18.0-brightgreen)
+![Version](https://img.shields.io/badge/version-0.18.1-brightgreen)
 
 <!-- [![Documentation Status](https://img.shields.io/badge/docs-passing-brightgreen.svg)](https://camp-documentation.readthedocs.io/en/latest/magqc.html) -->
 <!-- [![Documentation Status](https://img.shields.io/readthedocs/camp-mag_qc)](https://camp-documentation.readthedocs.io/en/latest/mag_qc.html) -->
@@ -52,7 +52,7 @@ conda init
 source ~/.bashrc # or source ~/.zshrc
 ```
 
-4. Make sure the installed pipeline works correctly. With 40 threads and a maximum of 250 GB allocated, the test dataset should finish in approximately 43 minutes. 
+4. Make sure the installed pipeline works correctly. With 10 threads and a maximum of 40 GB allocated, the test dataset should finish in approximately 1 hour. 
 ```Bash
 # Run tests on the included sample dataset
 conda activate camp
