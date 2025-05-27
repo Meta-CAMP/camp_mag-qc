@@ -209,7 +209,7 @@ CHECKM2_DB="${DATABASE_PATHS[CHECKM2_PATH]}"
 CHECKM1_DB="${DATABASE_PATHS[CHECKM_PATH]}"
 DIAMOND_DB="${DATABASE_PATHS[GUNC_PATH]}"
 GTDB_DB="${DATABASE_PATHS[GTDBTK_PATH]}"
-EXT_PATH="$MAG_QC_WORK_DIR/workflow/ext"  # Assuming extensions are in workflow/ext
+EXT_PATH="$MODULE_WORK_DIR/workflow/ext"  # Assuming extensions are in workflow/ext
 
 # Create test_data/parameters.yaml
 cat <<EOL > "$PARAMS_FILE"
