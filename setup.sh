@@ -3,7 +3,7 @@
 # --- Functions ---
 
 show_welcome() {
-    clear  # Clear the screen for a clean look
+    # clear  # Clear the screen for a clean look
 
     echo ""
     sleep 0.2
@@ -68,15 +68,24 @@ ask_database() {
     local DB_NAME="$1"
     local DB_VAR_NAME="$2"
     local DB_PATH=""
+    local EXAMPLE_PATH=""
 
-    echo "🛠️  Checking for $DB_NAME database..."
+    case "$DB_VAR_NAME" in
+        "GTDBTK_PATH") EXAMPLE_PATH="/path/to/GTDBTk_R220" ;;
+        "CHECKM2_PATH") EXAMPLE_PATH="/path/to/CheckM2_database" ;;
+        "CHECKM_PATH") EXAMPLE_PATH="/path/to/checkm_data_2015_01_16" ;;
+        "GUNC_PATH") EXAMPLE_PATH="/path/to/gunc_db_progenomes2.1.dmnd" ;;
+        *) EXAMPLE_PATH="/path/to/${DB_NAME}_database" ;;
+    esac
+
+    echo "🛠️   Checking for $DB_NAME database..."
 
     while true; do
         read -p "❓ Do you already have the $DB_NAME database installed? (y/n): " RESPONSE
         case "$RESPONSE" in
             [Yy]* )
                 while true; do
-                    read -p "📂 Enter the path to your existing $DB_NAME database (eg. /path/to/database_storage): " DB_PATH
+                    read -p "📂 Enter the path to your existing $DB_NAME database (eg. $EXAMPLE_PATH): " DB_PATH
                     if [[ -d "$DB_PATH" || -f "$DB_PATH" ]]; then
                         DATABASE_PATHS[$DB_VAR_NAME]="$DB_PATH"
                         echo "✅ $DB_NAME path set to: $DB_PATH"
@@ -92,14 +101,14 @@ ask_database() {
                 ;;
             [Nn]* )
                 break # Exit outer loop to start installation
-                ;; 
+                ;;
             * ) echo "⚠️ Please enter 'y(es)' or 'n(o)'.";;
         esac
     done
-    read -p "📂 Enter the directory where you want to install $DB_NAME: " DB_PATH
+    
+    read -p "📂 Enter the directory where you want to install $DB_NAME (eg. /path/to/databases): " DB_PATH
     install_database "$DB_NAME" "$DB_VAR_NAME" "$DB_PATH"
 }
-
 # Install databases in the specified directory
 install_database() {
     local DB_NAME="$1"
@@ -107,44 +116,118 @@ install_database() {
     local INSTALL_DIR="$3"
     local FINAL_DB_PATH="$INSTALL_DIR/${DB_SUBDIRS[$DB_VAR_NAME]}"
 
-    echo "🚀 Installing $DB_NAME database in: $FINAL_DB_PATH"	
+    echo "🚀 Checking $DB_NAME database..."
+
+    if [ -d "$FINAL_DB_PATH" ] && [ "$(ls -A "$FINAL_DB_PATH")" ]; then
+        echo "✅ $DB_NAME database already exists at: $FINAL_DB_PATH"
+        DATABASE_PATHS[$DB_VAR_NAME]="$FINAL_DB_PATH"
+        return 0
+    fi
+
+    echo "📥 Installing $DB_NAME database in: $FINAL_DB_PATH"
 
     case "$DB_VAR_NAME" in
         "GTDBTK_PATH")
-            wget -c wget https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/auxillary_files/gtdbtk_package/full_package/gtdbtk_data.tar.gz -P $INSTALL_DIR
-	        tar -xzf "$INSTALL_DIR/gtdbtk_r220_data.tar.gz" 
-            mv $INSTALL_DIR/release226 $FINAL_DB_PATH
-            #rm "$INSTALL_DIR/gtdbtk_r202_data.tar.gz"
+            local ARCHIVE="gtdbtk_data.tar.gz"
+            local DB_URL="https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/auxillary_files/gtdbtk_package/full_package/$ARCHIVE"
+            
+            if [ ! -f "$INSTALL_DIR/$ARCHIVE" ]; then
+                echo "📥 Downloading GTDB-Tk database..."
+                wget -c "$DB_URL" -P "$INSTALL_DIR" || {
+                    echo "❌ Failed to download GTDB-Tk database"
+                    return 1
+                }
+            fi
+            
+            echo "📦 Extracting GTDB-Tk database..."
+            tar -xzf "$INSTALL_DIR/$ARCHIVE" -C "$INSTALL_DIR" || {
+                echo "❌ Failed to extract GTDB-Tk database"
+                return 1
+            }
+            
+            mkdir -p "$FINAL_DB_PATH"
+            mv "$INSTALL_DIR/release"* "$FINAL_DB_PATH/" 2>/dev/null || {
+                echo "⚠️ Could not find expected release directory, checking contents..."
+                ls -la "$INSTALL_DIR"
+            }
+		DATABASE_PATHS[$DB_VAR_NAME]="$FINAL_DB_PATH"
             echo "✅ GTDB-Tk database installed successfully!"
             ;;
+
         "CHECKM2_PATH")
-            conda activate checkm2
-            checkm2 database --download --path "$FINAL_DB_PATH"
+            echo "📥 Installing CheckM2 database..."
+            conda activate checkm2 || {
+                echo "❌ Failed to activate checkm2 environment"
+                return 1
+            }
+            checkm2 database --download --path "$FINAL_DB_PATH" || {
+                echo "❌ Failed to download CheckM2 database"
+                conda deactivate
+                return 1
+            }
             conda deactivate
+	    DATABASE_PATHS[$DB_VAR_NAME]="$FINAL_DB_PATH"
             echo "✅ CheckM2 database downloaded successfully!"
             ;;
+
         "CHECKM_PATH")
             local ARCHIVE="checkm_data_2015_01_16.tar.gz"
             local DB_URL="https://data.ace.uq.edu.au/public/CheckM_databases/$ARCHIVE"
-            # wget -c $DB_URL -P $INSTALL_DIR
+            
+            if [ ! -f "$INSTALL_DIR/$ARCHIVE" ]; then
+                echo "📥 Downloading CheckM database..."
+                wget -c "$DB_URL" -P "$INSTALL_DIR" || {
+                    echo "❌ Failed to download CheckM database"
+                    return 1
+                }
+            fi
+            
+            echo "📦 Extracting CheckM database..."
             mkdir -p "$FINAL_DB_PATH"
-	        tar -xzf "$INSTALL_DIR/$ARCHIVE" -C "$FINAL_DB_PATH"
-            echo "✅ CheckM1 database installed successfully!"
+            tar -xzf "$INSTALL_DIR/$ARCHIVE" -C "$FINAL_DB_PATH" || {
+                echo "❌ Failed to extract CheckM database"
+                return 1
+            }
+    		DATABASE_PATHS[$DB_VAR_NAME]="$FINAL_DB_PATH"
+            echo "✅ CheckM database installed successfully!"
             ;;
+
         "GUNC_PATH")
-            conda activate gunc
-            gunc download_db $INSTALL_DIR
+            echo "📥 Installing GUNC database..."
+            conda activate gunc || {
+                echo "❌ Failed to activate gunc environment"
+                return 1
+            }
+            gunc download_db "$INSTALL_DIR" || {
+                echo "❌ Failed to download GUNC database"
+                conda deactivate
+                return 1
+            }
             conda deactivate
+            
+            if [ -d "$INSTALL_DIR/gunc_db_progenomes2.1.dmnd" ]; then
+                mv "$INSTALL_DIR/gunc_db_progenomes2.1.dmnd" "$FINAL_DB_PATH"
+            fi
+	    DATABASE_PATHS[$DB_VAR_NAME]="$FINAL_DB_PATH"
             echo "✅ GUNC database installed successfully!"
             ;;
+
         *)
-            echo "⚠️ Unknown database: $DB_NAME"
+            echo "❌ Unknown database: $DB_NAME"
+            return 1
             ;;
     esac
 
-    DATABASE_PATHS[$DB_VAR_NAME]="$FINAL_DB_PATH"
+    # validate
+    if [ -d "$FINAL_DB_PATH" ] && [ "$(ls -A "$FINAL_DB_PATH")" ]; then
+        DATABASE_PATHS[$DB_VAR_NAME]="$FINAL_DB_PATH"
+        echo "🎉 $DB_NAME installation completed successfully!"
+        return 0
+    else
+        echo "❌ $DB_NAME installation failed - directory is empty or missing"
+        return 1
+    fi
 }
-
 # --- Initialize setup ---
 
 show_welcome
