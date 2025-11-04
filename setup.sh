@@ -70,6 +70,7 @@ ask_database() {
     local DB_PATH=""
     local EXAMPLE_PATH=""
 
+    # 设置示例路径
     case "$DB_VAR_NAME" in
         "GTDBTK_PATH") EXAMPLE_PATH="/path/to/GTDBTk_R220" ;;
         "CHECKM2_PATH") EXAMPLE_PATH="/path/to/CheckM2_database" ;;
@@ -85,22 +86,42 @@ ask_database() {
         case "$RESPONSE" in
             [Yy]* )
                 while true; do
-                    read -p "📂 Enter the path to your existing $DB_NAME database (eg. $EXAMPLE_PATH): " DB_PATH
-                    if [[ -d "$DB_PATH" || -f "$DB_PATH" ]]; then
-                        DATABASE_PATHS[$DB_VAR_NAME]="$DB_PATH"
-                        echo "✅ $DB_NAME path set to: $DB_PATH"
-                        return  # Exit the function immediately after successful input
-                    else
-                        echo "⚠️ The provided path does not exist or is empty. Please check and try again."
-                        read -p "Do you want to re-enter the path (r) or install $DB_NAME instead (i)? (r/i): " RETRY
-                        if [[ "$RETRY" == "i" ]]; then
-                            break  # Exit outer loop to start installation
+                    read -p "📂 Enter the path to your existing $DB_NAME database (eg. $EXAMPLE_PATH): " DB_PATH   
+                    if [[ "$DB_VAR_NAME" == "CHECKM2_PATH" || "$DB_VAR_NAME" == "GUNC_PATH" ]]; then
+                        if [ -f "$DB_PATH" ] && [[ "$DB_PATH" == *.dmnd ]]; then
+                            DATABASE_PATHS[$DB_VAR_NAME]="$DB_PATH"
+                            echo "✅ $DB_NAME file found: $DB_PATH"
+                            return
+                        elif [ -d "$DB_PATH" ]; then
+                            local dmnd_file=$(find "$DB_PATH" -name "*.dmnd" -type f | head -1)
+                            if [ -n "$dmnd_file" ]; then
+                                DATABASE_PATHS[$DB_VAR_NAME]="$dmnd_file"
+                                echo "✅ Found $DB_NAME database file: $dmnd_file"
+                                return
+                            else
+                                echo "❌ No .dmnd file found in directory: $DB_PATH"
+                            fi
+                        else
+                            echo "⚠️ Path does not exist: $DB_PATH"
                         fi
+                    else
+                        if [[ -d "$DB_PATH" || -f "$DB_PATH" ]]; then
+                            DATABASE_PATHS[$DB_VAR_NAME]="$DB_PATH"
+                            echo "✅ $DB_NAME path set to: $DB_PATH"
+                            return
+                        else
+                            echo "⚠️ The provided path does not exist: $DB_PATH"
+                        fi
+                    fi
+                    
+                    read -p "Re-enter path (r) or install instead (i)? (r/i): " RETRY
+                    if [[ "$RETRY" == "i" ]]; then
+                        break
                     fi
                 done
                 ;;
             [Nn]* )
-                break # Exit outer loop to start installation
+                break
                 ;;
             * ) echo "⚠️ Please enter 'y(es)' or 'n(o)'.";;
         esac
